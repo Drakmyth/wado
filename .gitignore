@@ -1,0 +1,11 @@
+# Go
+bin/
+*.exe
+*.log
+.env
+go-template
+
+# VSCode
+.vscode/*
+!.vscode/extensions.json
+!.vscode/launch.json

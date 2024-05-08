@@ -1,0 +1,16 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Delve into Docker",
+            "type": "go",
+            "request": "attach",
+            "mode": "remote",
+            "substitutePath": [{ "from": "${workspaceFolder}", "to": "/app" }],
+            "port": 2345,
+            "host": "localhost",
+            "debugAdapter": "dlv-dap",
+            "showLog": true
+        }
+    ]
+}

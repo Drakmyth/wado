@@ -1,0 +1,16 @@
+services:
+    go-template:
+        image: go-template
+        build:
+            context: .
+            dockerfile: Dockerfile
+            target: dev
+        container_name: go-template
+        environment:
+            - HOST=
+        ports:
+            - "8080:8080"
+            - "2345:2345"
+        volumes:
+            - ./:/app
+            - /app/bin
