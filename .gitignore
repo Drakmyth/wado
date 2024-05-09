@@ -1,11 +1,12 @@
+*.wad
+wads/
+
 # Go
-bin/
 *.exe
 *.log
 .env
-go-template
+wado
 
 # VSCode
 .vscode/*
 !.vscode/extensions.json
-!.vscode/launch.json

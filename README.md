@@ -1,6 +1,10 @@
-# go-template
+# Wado
 
-This is a quick and simple example of a Go application configured with a completely containerized dev environment. Features include Live Reloading, Remote Debugging, and a multi-layer containerized production build definition.
+A tool for mixing and munging Doom WAD files. It's a little eclectic and could go anywhere.
+
+Where's Waldo?
+Where's Wadlo?
+Wado!
 
 ### Built With
 
@@ -44,7 +48,7 @@ PORT=8080
 
 ## License
 
-This example code is provided to the public domain via the CC0 1.0 Universal License. See [LICENSE.md](./LICENSE.md) for more information.
+Distributed under the MIT License. See [LICENSE.md](./LICENSE.md) for more information.
 
 
 <!-- Reference Links -->
