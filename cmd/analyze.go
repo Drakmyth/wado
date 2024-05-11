@@ -1,12 +1,9 @@
 package cmd
 
 import (
-	"encoding/binary"
 	"errors"
-	"fmt"
 	"os"
 
-	"github.com/Drakmyth/wado/models"
 	"github.com/spf13/cobra"
 )
 
@@ -31,11 +28,11 @@ var analyzeCmd = &cobra.Command{
 		}
 		defer f.Close()
 
-		header := models.WadHeader{}
-		err = binary.Read(f, binary.LittleEndian, &header)
-		if err != nil {
-			panic(err)
-		}
-		fmt.Printf("%s, %d, %d", header.Identification, header.NumLumps, header.InfoTableOffset)
+		// header := parser.Header{}
+		// err = binary.Read(f, binary.LittleEndian, &header)
+		// if err != nil {
+		// 	panic(err)
+		// }
+		// fmt.Printf("%s, %d, %d", header.Identification, header.NumLumps, header.InfoTableOffset)
 	},
 }
