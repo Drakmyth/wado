@@ -153,6 +153,17 @@ var LUMP_REPLACEMENTS = map[string]string{
 var LUMPS_TO_PROCESS = []string{LUMP_THINGS, LUMP_SIDEDEFS}
 var D2_REPLACEMENT_CANDIDATES = []int16{ENEMY_SHOTGUN, ENEMY_IMP, ENEMY_PINKY, ENEMY_BARON, ENEMY_PISTOL, ENEMY_CACO, ENEMY_SOUL}
 
+func findAllIndices(things []wadThing, thingTypes ...int16) []int {
+	indices := []int{}
+	for i, thing := range things {
+		if slices.Contains(thingTypes, thing.Type) {
+			indices = append(indices, i)
+		}
+	}
+
+	return indices
+}
+
 func Convert(in_filepath string, out_filepath string) error {
 	// Copy to output file so we don't have to worry about messing up the format or the source file
 	err := CopyFile(in_filepath, out_filepath)
@@ -285,29 +296,20 @@ func updateThings(f *os.File, dir wadDirectoryEntry) error {
 	}
 
 	// Replace all shotguns with SSGs
-	for i, thing := range things {
-		if thing.Type != THING_SHOTGUN {
-			continue
-		}
-
-		thing.Type = THING_SSG
-		things[i] = thing
-	}
-
-	// Get indices of things that can be replaced with single items
-	replaceCandidateIndices := []int{}
-	for i, candidate := range things {
-		if slices.Contains(D2_REPLACEMENT_CANDIDATES, candidate.Type) {
-			replaceCandidateIndices = append(replaceCandidateIndices, i)
-		}
+	shotgunIndices := findAllIndices(things, THING_SHOTGUN)
+	for _, i := range shotgunIndices {
+		shotgun := things[i]
+		shotgun.Type = THING_SSG
+		things[i] = shotgun
 	}
 
 	// Generate 1 Megasphere, 1 Archvile, 1 Berserk, and 1 SSG
 	itemsToGenerate := []int16{THING_MEGASPHERE, ENEMY_ARCHVILE, THING_BERSERK, THING_SSG}
-	for done := false; !done; done = len(itemsToGenerate) == 0 || len(replaceCandidateIndices) == 0 {
+	candidateIndices := findAllIndices(things, D2_REPLACEMENT_CANDIDATES...)
+	for done := false; !done; done = len(itemsToGenerate) == 0 || len(candidateIndices) == 0 {
 		// Pick a random index
-		candidateIndexIndex := rand.Intn(len(replaceCandidateIndices))
-		candidateIndex := replaceCandidateIndices[candidateIndexIndex]
+		candidateIndexIndex := rand.Intn(len(candidateIndices))
+		candidateIndex := candidateIndices[candidateIndexIndex]
 
 		// Replace the thing
 		candidate := things[candidateIndex]
@@ -317,26 +319,14 @@ func updateThings(f *os.File, dir wadDirectoryEntry) error {
 		things[candidateIndex] = candidate
 
 		// Remove the index of the replaced thing from the candidate list
-		replaceCandidateIndices = removeIndex(replaceCandidateIndices, candidateIndexIndex)
+		candidateIndices = removeIndex(candidateIndices, candidateIndexIndex)
 	}
 
 	// Get Imps, Cacodemons, Barons, and Troopers
-	impIndices := []int{}
-	cacoIndices := []int{}
-	baronIndices := []int{}
-	pistolIndices := []int{}
-	for i, candidate := range things {
-		switch candidate.Type {
-		case ENEMY_IMP:
-			impIndices = append(impIndices, i)
-		case ENEMY_CACO:
-			cacoIndices = append(cacoIndices, i)
-		case ENEMY_BARON:
-			baronIndices = append(baronIndices, i)
-		case ENEMY_PISTOL:
-			pistolIndices = append(pistolIndices, i)
-		}
-	}
+	impIndices := findAllIndices(things, ENEMY_IMP)
+	cacoIndices := findAllIndices(things, ENEMY_CACO)
+	baronIndices := findAllIndices(things, ENEMY_BARON)
+	pistolIndices := findAllIndices(things, ENEMY_PISTOL)
 
 	// Replace 20% of Imps with Chaingunners
 	impReplacements := []int16{}
