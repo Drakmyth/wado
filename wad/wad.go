@@ -138,6 +138,9 @@ var TEXTURE_REPLACEMENTS = map[string]string{
 	"WOODSKUL": "WOODGARG",
 }
 
+// These changed from 64x128 to 128x128 in Doom 2
+var SHIFT_TEXTURES = []string{"BRNPOIS", "NUKEPOIS", "SW1BRN1", "SW1STON2", "SW1STONE", "SW2BRN1", "SW2STON2", "SW2STONE"}
+
 var LUMP_REPLACEMENTS = map[string]string{
 	"D_INTER":  "D_DM2INT",
 	"D_INTRO":  "D_DM2TTL",
@@ -467,6 +470,10 @@ func updateSidedefs(f *os.File, dir wadDirectoryEntry) error {
 
 	// Update texture names in sidedefs
 	for i, sidedef := range sidedefs {
+		if shouldShiftTex(sidedef) {
+			sidedef.XOffset += 32
+		}
+
 		sidedef.UpperTex = GetNewTexName(sidedef.UpperTex)
 		sidedef.MiddleTex = GetNewTexName(sidedef.MiddleTex)
 		sidedef.LowerTex = GetNewTexName(sidedef.LowerTex)
@@ -492,6 +499,14 @@ func updateSidedefs(f *os.File, dir wadDirectoryEntry) error {
 	}
 
 	return nil
+}
+
+func shouldShiftTex(sidedef wadSidedef) bool {
+	upperStr := strings.ToUpper(strings.Trim(string(sidedef.UpperTex[:]), "\x00"))
+	middleStr := strings.ToUpper(strings.Trim(string(sidedef.MiddleTex[:]), "\x00"))
+	lowerStr := strings.ToUpper(strings.Trim(string(sidedef.LowerTex[:]), "\x00"))
+
+	return slices.Contains(SHIFT_TEXTURES, upperStr) || slices.Contains(SHIFT_TEXTURES, middleStr) || slices.Contains(SHIFT_TEXTURES, lowerStr)
 }
 
 func GetNewTexName(oldName [8]byte) [8]byte {
