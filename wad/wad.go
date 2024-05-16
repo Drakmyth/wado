@@ -198,7 +198,7 @@ func Convert(in_filepath string, out_filepath string) error {
 		}
 
 		// If lump is a map header...
-		lumpName := strings.Trim(string(dir.LumpName[:]), "\x00")
+		lumpName := nameToStr(dir.LumpName[:])
 		parts := mapNameRegexp.FindStringSubmatch(lumpName)
 		if parts != nil {
 			episodeNumber, err := strconv.Atoi(parts[1])
@@ -246,11 +246,10 @@ func Convert(in_filepath string, out_filepath string) error {
 		}
 
 		// If lump needs to be renamed...
-		newNameStr, rename := LUMP_REPLACEMENTS[lumpName]
+		newName, rename := LUMP_REPLACEMENTS[lumpName]
 		if rename {
 			// Update lump name in dir entry
-			newName := strings.ReplaceAll(fmt.Sprintf("%-8s", newNameStr), " ", "\x00")
-			copy(dir.LumpName[:], newName)
+			copy(dir.LumpName[:], strToName(newName))
 
 			// Rewind cursor to beginning of dir entry
 			_, err = f.Seek(-SIZE_DIRENTRY, io.SeekCurrent)
