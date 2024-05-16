@@ -1,6 +1,7 @@
 package wad
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -33,13 +34,48 @@ type wadThing struct {
 	Flags int16
 }
 
-type wadSidedef struct {
+type Sidedef struct {
 	XOffset      int16
 	YOffset      int16
-	UpperTex     [8]byte
-	LowerTex     [8]byte
-	MiddleTex    [8]byte
+	UpperTex     string
+	LowerTex     string
+	MiddleTex    string
 	FacingSector int16
+}
+
+func (s *Sidedef) UnmarshalBinary(data []byte) error {
+	s.XOffset = int16(binary.LittleEndian.Uint16(data[0:2]))
+	s.YOffset = int16(binary.LittleEndian.Uint16(data[2:4]))
+	s.UpperTex = nameToStr(data[4:12])
+	s.LowerTex = nameToStr(data[12:20])
+	s.MiddleTex = nameToStr(data[20:28])
+	s.FacingSector = int16(binary.LittleEndian.Uint16(data[28:30]))
+
+	fmt.Println(s)
+	return nil
+}
+
+func (s Sidedef) MarshalBinary() ([]byte, error) {
+	sbytes := [30]byte{}
+	binary.LittleEndian.PutUint16(sbytes[0:2], uint16(s.XOffset))
+	binary.LittleEndian.PutUint16(sbytes[2:4], uint16(s.YOffset))
+	copy(sbytes[4:12], strToName(s.UpperTex))
+	copy(sbytes[12:20], strToName(s.LowerTex))
+	copy(sbytes[20:28], strToName(s.MiddleTex))
+	binary.LittleEndian.PutUint16(sbytes[28:30], uint16(s.FacingSector))
+
+	return sbytes[:], nil
+}
+
+func strToName(str string) []byte {
+	name := [8]byte{}
+	paddedName := strings.ReplaceAll(fmt.Sprintf("%-8s", str), " ", "\x00")
+	copy(name[:], paddedName)
+	return name[:]
+}
+
+func nameToStr(name []byte) string {
+	return strings.Trim(string(name), "\x00")
 }
 
 const (
@@ -157,7 +193,7 @@ var LUMPS_TO_PROCESS = []string{LUMP_THINGS, LUMP_SIDEDEFS}
 var D2_REPLACEMENT_CANDIDATES = []int16{ENEMY_SHOTGUN, ENEMY_IMP, ENEMY_PINKY, ENEMY_BARON, ENEMY_PISTOL, ENEMY_CACO, ENEMY_SOUL}
 
 func findAllIndices(things []wadThing, thingTypes ...int16) []int {
-	indices := []int{}
+	indices := make([]int, 0, 10) // Arbitrarily start with 10 capacity since we don't know how many objects we'll find
 	for i, thing := range things {
 		if slices.Contains(thingTypes, thing.Type) {
 			indices = append(indices, i)
@@ -290,7 +326,7 @@ func updateThings(f *os.File, dir wadDirectoryEntry) error {
 		return err
 	}
 
-	// Read all sidedefs from file
+	// Read all things from file
 	numThings := dir.DataLength / SIZE_THING
 	things := make([]wadThing, numThings)
 	err = binary.Read(f, binary.LittleEndian, things)
@@ -461,12 +497,15 @@ func updateSidedefs(f *os.File, dir wadDirectoryEntry) error {
 	}
 
 	// Read all sidedefs from file
+	sData := make([]byte, dir.DataLength)
 	numSidedefs := dir.DataLength / SIZE_SIDEDEF
-	sidedefs := make([]wadSidedef, numSidedefs)
-	err = binary.Read(f, binary.LittleEndian, sidedefs)
+	sidedefs := make([]Sidedef, numSidedefs)
+
+	_, err = f.Read(sData)
 	if err != nil {
 		return err
 	}
+	unmarshalSidedefs(sidedefs, sData)
 
 	// Update texture names in sidedefs
 	for i, sidedef := range sidedefs {
@@ -487,7 +526,7 @@ func updateSidedefs(f *os.File, dir wadDirectoryEntry) error {
 	}
 
 	// Overwrite old sidedefs lump with updated one
-	err = binary.Write(f, binary.LittleEndian, sidedefs)
+	_, err = f.Write(marshalSidedefs(sidedefs))
 	if err != nil {
 		return err
 	}
@@ -501,25 +540,35 @@ func updateSidedefs(f *os.File, dir wadDirectoryEntry) error {
 	return nil
 }
 
-func shouldShiftTex(sidedef wadSidedef) bool {
-	upperStr := strings.ToUpper(strings.Trim(string(sidedef.UpperTex[:]), "\x00"))
-	middleStr := strings.ToUpper(strings.Trim(string(sidedef.MiddleTex[:]), "\x00"))
-	lowerStr := strings.ToUpper(strings.Trim(string(sidedef.LowerTex[:]), "\x00"))
-
-	return slices.Contains(SHIFT_TEXTURES, upperStr) || slices.Contains(SHIFT_TEXTURES, middleStr) || slices.Contains(SHIFT_TEXTURES, lowerStr)
+func unmarshalSidedefs(sidedefs []Sidedef, data []byte) {
+	buf := bytes.NewBuffer(data)
+	for i, s := range sidedefs {
+		sbytes := buf.Next(SIZE_SIDEDEF)
+		s.UnmarshalBinary(sbytes)
+		sidedefs[i] = s
+	}
 }
 
-func GetNewTexName(oldName [8]byte) [8]byte {
-	oldNameStr := strings.ToUpper(strings.Trim(string(oldName[:]), "\x00"))
-	newName := [8]byte{}
-
-	replacedName, replaced := TEXTURE_REPLACEMENTS[oldNameStr]
-	if !replaced {
-		replacedName = oldNameStr
+func marshalSidedefs(sidedefs []Sidedef) []byte {
+	buf := make([]byte, 0, len(sidedefs)*SIZE_SIDEDEF)
+	for _, s := range sidedefs {
+		sbytes, _ := s.MarshalBinary()
+		buf = append(buf, sbytes...)
 	}
-	newNameStr := strings.ReplaceAll(fmt.Sprintf("%-8s", replacedName), " ", "\x00")
 
-	copy(newName[:], newNameStr)
+	return buf
+}
+
+func shouldShiftTex(sidedef Sidedef) bool {
+	return slices.Contains(SHIFT_TEXTURES, sidedef.UpperTex) || slices.Contains(SHIFT_TEXTURES, sidedef.MiddleTex) || slices.Contains(SHIFT_TEXTURES, sidedef.LowerTex)
+}
+
+func GetNewTexName(oldName string) string {
+	newName, replaced := TEXTURE_REPLACEMENTS[oldName]
+	if !replaced {
+		newName = oldName
+	}
+
 	return newName
 }
 
