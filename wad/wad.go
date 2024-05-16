@@ -1,7 +1,6 @@
 package wad
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -26,14 +25,6 @@ type wadDirectoryEntry struct {
 	LumpName   [8]byte
 }
 
-type wadThing struct {
-	X     int16
-	Y     int16
-	Angle int16
-	Type  int16
-	Flags int16
-}
-
 func strToName(str string) []byte {
 	name := [8]byte{}
 	paddedName := strings.ReplaceAll(fmt.Sprintf("%-8s", str), " ", "\x00")
@@ -52,8 +43,6 @@ const (
 
 const (
 	SIZE_DIRENTRY = 16
-	SIZE_THING    = 10
-	SIZE_SIDEDEF  = 30
 	SIZE_SECTOR   = 26
 )
 
@@ -159,7 +148,7 @@ var LUMP_REPLACEMENTS = map[string]string{
 var LUMPS_TO_PROCESS = []string{LUMP_THINGS, LUMP_SIDEDEFS}
 var D2_REPLACEMENT_CANDIDATES = []int16{ENEMY_SHOTGUN, ENEMY_IMP, ENEMY_PINKY, ENEMY_BARON, ENEMY_PISTOL, ENEMY_CACO, ENEMY_SOUL}
 
-func findAllIndices(things []wadThing, thingTypes ...int16) []int {
+func findAllIndices(things []Thing, thingTypes ...int16) []int {
 	indices := make([]int, 0, 10) // Arbitrarily start with 10 capacity since we don't know how many objects we'll find
 	for i, thing := range things {
 		if slices.Contains(thingTypes, thing.Type) {
@@ -293,13 +282,16 @@ func updateThings(f *os.File, dir wadDirectoryEntry) error {
 		return err
 	}
 
-	// Read all things from file
-	numThings := dir.DataLength / SIZE_THING
-	things := make([]wadThing, numThings)
-	err = binary.Read(f, binary.LittleEndian, things)
+	// Read all sidedefs from file
+	tData := make([]byte, dir.DataLength)
+	numThings := dir.DataLength / int32(SIZE_THING)
+	things := make([]Thing, numThings)
+
+	_, err = f.Read(tData)
 	if err != nil {
 		return err
 	}
+	unmarshalThings(things, tData)
 
 	// Replace all shotguns with SSGs
 	shotgunIndices := findAllIndices(things, THING_SHOTGUN)
@@ -422,7 +414,7 @@ func updateThings(f *os.File, dir wadDirectoryEntry) error {
 	}
 
 	// Overwrite old things lump with updated one
-	err = binary.Write(f, binary.LittleEndian, things)
+	_, err = f.Write(marshalThings(things))
 	if err != nil {
 		return err
 	}
@@ -465,7 +457,7 @@ func updateSidedefs(f *os.File, dir wadDirectoryEntry) error {
 
 	// Read all sidedefs from file
 	sData := make([]byte, dir.DataLength)
-	numSidedefs := dir.DataLength / SIZE_SIDEDEF
+	numSidedefs := dir.DataLength / int32(SIZE_SIDEDEF)
 	sidedefs := make([]Sidedef, numSidedefs)
 
 	_, err = f.Read(sData)
@@ -507,27 +499,10 @@ func updateSidedefs(f *os.File, dir wadDirectoryEntry) error {
 	return nil
 }
 
-func unmarshalSidedefs(sidedefs []Sidedef, data []byte) {
-	buf := bytes.NewBuffer(data)
-	for i, s := range sidedefs {
-		sbytes := buf.Next(SIZE_SIDEDEF)
-		s.UnmarshalBinary(sbytes)
-		sidedefs[i] = s
-	}
-}
-
-func marshalSidedefs(sidedefs []Sidedef) []byte {
-	buf := make([]byte, 0, len(sidedefs)*SIZE_SIDEDEF)
-	for _, s := range sidedefs {
-		sbytes, _ := s.MarshalBinary()
-		buf = append(buf, sbytes...)
-	}
-
-	return buf
-}
-
 func shouldShiftTex(sidedef Sidedef) bool {
-	return slices.Contains(SHIFT_TEXTURES, sidedef.UpperTex) || slices.Contains(SHIFT_TEXTURES, sidedef.MiddleTex) || slices.Contains(SHIFT_TEXTURES, sidedef.LowerTex)
+	return slices.ContainsFunc(SHIFT_TEXTURES, func(tex string) bool {
+		return tex == sidedef.UpperTex || tex == sidedef.LowerTex || tex == sidedef.MiddleTex
+	})
 }
 
 func GetNewTexName(oldName string) string {
