@@ -39,7 +39,7 @@ func (t Thing) MarshalBinary() ([]byte, error) {
 	return tbytes[:], nil
 }
 
-func unmarshalThings(things []Thing, data []byte) {
+func UnmarshalThings(things []Thing, data []byte) {
 	buf := bytes.NewBuffer(data)
 	for i, t := range things {
 		tbytes := buf.Next(SIZE_THING)
@@ -48,7 +48,7 @@ func unmarshalThings(things []Thing, data []byte) {
 	}
 }
 
-func marshalThings(things []Thing) []byte {
+func MarshalThings(things []Thing) []byte {
 	buf := make([]byte, 0, len(things)*SIZE_THING)
 	for _, t := range things {
 		tbytes, _ := t.MarshalBinary()
@@ -58,7 +58,7 @@ func marshalThings(things []Thing) []byte {
 	return buf
 }
 
-func findAllThings(things []Thing, thingTypes ...int16) []*Thing {
+func FindAllThings(things []Thing, thingTypes ...int16) []*Thing {
 	found := make([]*Thing, 0, 10) // Arbitrarily start with 10 capacity since we don't know how many things we'll find
 	for i, thing := range things {
 		if slices.Contains(thingTypes, thing.Type) {
@@ -69,8 +69,8 @@ func findAllThings(things []Thing, thingTypes ...int16) []*Thing {
 	return found
 }
 
-func replaceThingsWeighted(things *[]Thing, candidateTypes []int16, weights map[int16]float64) {
-	candidates := findAllThings(*things, candidateTypes...)
+func ReplaceThingsWeighted(things *[]Thing, candidateTypes []int16, weights map[int16]float64) {
+	candidates := FindAllThings(*things, candidateTypes...)
 
 	// Build bag of replacements to replace candidates with according to weights
 	replacements := []int16{}
@@ -82,8 +82,8 @@ func replaceThingsWeighted(things *[]Thing, candidateTypes []int16, weights map[
 	executeReplacements(candidates, replacements)
 }
 
-func replaceThingsCount(things *[]Thing, candidateTypes []int16, counts map[int16]int16) {
-	candidates := findAllThings(*things, candidateTypes...)
+func ReplaceThingsCount(things *[]Thing, candidateTypes []int16, counts map[int16]int16) {
+	candidates := FindAllThings(*things, candidateTypes...)
 
 	// Build bag of replacements to replace candidates with according to counts
 	replacements := []int16{}
