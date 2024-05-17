@@ -110,3 +110,17 @@ func executeReplacements(candidates []*Thing, replacements []int16) {
 		candidates = append(candidates[:candidateIndex], candidates[candidateIndex:]...)
 	}
 }
+
+func removeIndex[E int | int16](s []E, index E) []E {
+	ret := make([]E, 0)
+	ret = append(ret, s[:index]...)
+	return append(ret, s[index+1:]...)
+}
+
+func repeatedSlice[E int | int16](value, n E) []E {
+	arr := make([]E, n)
+	for i := E(0); i < n; i++ {
+		arr[i] = value
+	}
+	return arr
+}

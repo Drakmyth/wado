@@ -338,20 +338,6 @@ func updateThings(f *os.File, dir wadDirectoryEntry) error {
 	return nil
 }
 
-func repeatedSlice[E int | int16](value, n E) []E {
-	arr := make([]E, n)
-	for i := E(0); i < n; i++ {
-		arr[i] = value
-	}
-	return arr
-}
-
-func removeIndex[E int | int16](s []E, index E) []E {
-	ret := make([]E, 0)
-	ret = append(ret, s[:index]...)
-	return append(ret, s[index+1:]...)
-}
-
 func updateSidedefs(f *os.File, dir wadDirectoryEntry) error {
 	// Remember current cursor position
 	currentPosition, err := f.Seek(0, io.SeekCurrent)
