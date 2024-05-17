@@ -148,17 +148,6 @@ var LUMP_REPLACEMENTS = map[string]string{
 var LUMPS_TO_PROCESS = []string{LUMP_THINGS, LUMP_SIDEDEFS}
 var D2_REPLACEMENT_CANDIDATES = []int16{ENEMY_SHOTGUN, ENEMY_IMP, ENEMY_PINKY, ENEMY_BARON, ENEMY_PISTOL, ENEMY_CACO, ENEMY_SOUL}
 
-func findAllIndices(things []Thing, thingTypes ...int16) []int {
-	indices := make([]int, 0, 10) // Arbitrarily start with 10 capacity since we don't know how many objects we'll find
-	for i, thing := range things {
-		if slices.Contains(thingTypes, thing.Type) {
-			indices = append(indices, i)
-		}
-	}
-
-	return indices
-}
-
 func Convert(in_filepath string, out_filepath string) error {
 	// Copy to output file so we don't have to worry about messing up the format or the source file
 	err := CopyFile(in_filepath, out_filepath)
@@ -293,117 +282,105 @@ func updateThings(f *os.File, dir wadDirectoryEntry) error {
 	unmarshalThings(things, tData)
 
 	// Replace all shotguns with SSGs
-	shotgunIndices := findAllIndices(things, THING_SHOTGUN)
-	for _, i := range shotgunIndices {
-		shotgun := things[i]
+	shotguns := findAll(things, THING_SHOTGUN)
+	for _, shotgun := range shotguns {
 		shotgun.Type = THING_SSG
-		things[i] = shotgun
 	}
 
 	// Generate 1 Megasphere, 1 Archvile, 1 Berserk, and 1 SSG
 	itemsToGenerate := []int16{THING_MEGASPHERE, ENEMY_ARCHVILE, THING_BERSERK, THING_SSG}
-	candidateIndices := findAllIndices(things, D2_REPLACEMENT_CANDIDATES...)
-	for done := false; !done; done = len(itemsToGenerate) == 0 || len(candidateIndices) == 0 {
+	candidates := findAll(things, D2_REPLACEMENT_CANDIDATES...)
+	for done := false; !done; done = len(itemsToGenerate) == 0 || len(candidates) == 0 {
 		// Pick a random index
-		candidateIndexIndex := rand.Intn(len(candidateIndices))
-		candidateIndex := candidateIndices[candidateIndexIndex]
+		candidateIndex := rand.Intn(len(candidates))
 
 		// Replace the thing
-		candidate := things[candidateIndex]
+		candidate := candidates[candidateIndex]
 		generatedThingIndex := rand.Intn(len(itemsToGenerate))
 		candidate.Type = itemsToGenerate[generatedThingIndex]
 		itemsToGenerate = removeIndex(itemsToGenerate, int16(generatedThingIndex))
-		things[candidateIndex] = candidate
 
 		// Remove the index of the replaced thing from the candidate list
-		candidateIndices = removeIndex(candidateIndices, candidateIndexIndex)
+		candidates = append(candidates[:candidateIndex], candidates[candidateIndex+1:]...)
 	}
 
 	// Get Imps, Cacodemons, Barons, and Troopers
-	impIndices := findAllIndices(things, ENEMY_IMP)
-	cacoIndices := findAllIndices(things, ENEMY_CACO)
-	baronIndices := findAllIndices(things, ENEMY_BARON)
-	pistolIndices := findAllIndices(things, ENEMY_PISTOL)
+	imps := findAll(things, ENEMY_IMP)
+	cacos := findAll(things, ENEMY_CACO)
+	barons := findAll(things, ENEMY_BARON)
+	pistols := findAll(things, ENEMY_PISTOL)
 
 	// Replace 20% of Imps with Chaingunners
 	impReplacements := []int16{}
-	impReplacements = append(impReplacements, repeatedSlice(ENEMY_CHAINGUNNER, int16(math.Round(float64(len(impIndices))*0.2)))...)
-	for done := len(impReplacements) == 0 || len(impIndices) == 0; !done; done = len(impReplacements) == 0 || len(impIndices) == 0 {
+	impReplacements = append(impReplacements, repeatedSlice(ENEMY_CHAINGUNNER, int16(math.Round(float64(len(imps))*0.2)))...)
+	for done := len(impReplacements) == 0 || len(imps) == 0; !done; done = len(impReplacements) == 0 || len(imps) == 0 {
 		// Pick a random index
-		impIndexIndex := rand.Intn(len(impIndices))
-		impIndex := impIndices[impIndexIndex]
+		impIndex := rand.Intn(len(imps))
 
 		// Replace the imp
-		imp := things[impIndex]
+		imp := imps[impIndex]
 		replacementIndex := rand.Intn(len(impReplacements))
 		imp.Type = impReplacements[replacementIndex]
 		impReplacements = removeIndex(impReplacements, int16(replacementIndex))
-		things[impIndex] = imp
 
 		// Remove the index of the replaced imp from the candidate list
-		impIndices = removeIndex(impIndices, impIndexIndex)
+		imps = append(imps[:impIndex], imps[impIndex:]...)
 	}
 
 	// Replace 10% of Cacodemons with Pain Elementals
 	cacoReplacements := []int16{}
-	cacoReplacements = append(cacoReplacements, repeatedSlice(ENEMY_PAIN, int16(math.Round(float64(len(cacoIndices))*0.1)))...)
-	for done := len(cacoReplacements) == 0 || len(cacoIndices) == 0; !done; done = len(cacoReplacements) == 0 || len(cacoIndices) == 0 {
+	cacoReplacements = append(cacoReplacements, repeatedSlice(ENEMY_PAIN, int16(math.Round(float64(len(cacos))*0.1)))...)
+	for done := len(cacoReplacements) == 0 || len(cacos) == 0; !done; done = len(cacoReplacements) == 0 || len(cacos) == 0 {
 		// Pick a random index
-		cacoIndexIndex := rand.Intn(len(cacoIndices))
-		cacoIndex := cacoIndices[cacoIndexIndex]
+		cacoIndex := rand.Intn(len(cacos))
 
 		// Replace the caco
-		caco := things[cacoIndex]
+		caco := cacos[cacoIndex]
 		replacementIndex := rand.Intn(len(cacoReplacements))
 		caco.Type = cacoReplacements[replacementIndex]
 		cacoReplacements = removeIndex(cacoReplacements, int16(replacementIndex))
-		things[cacoIndex] = caco
 
 		// Remove the index of the replaced caco from the candidate list
-		cacoIndices = removeIndex(cacoIndices, cacoIndexIndex)
+		cacos = append(cacos[:cacoIndex], cacos[cacoIndex:]...)
 	}
 
 	// Replace 10% of BaronsImps with Arachnotrons, 10% with Revenants, and 30% with Hell Knights
 	baronReplacements := []int16{}
-	baronReplacements = append(baronReplacements, repeatedSlice(ENEMY_ARACH, int16(math.Round(float64(len(baronIndices))*0.1)))...)
-	baronReplacements = append(baronReplacements, repeatedSlice(ENEMY_REVENANT, int16(math.Round(float64(len(baronIndices))*0.1)))...)
-	baronReplacements = append(baronReplacements, repeatedSlice(ENEMY_KNIGHT, int16(math.Round(float64(len(baronIndices))*0.3)))...)
-	for done := len(baronReplacements) == 0 || len(baronIndices) == 0; !done; done = len(baronReplacements) == 0 || len(baronIndices) == 0 {
+	baronReplacements = append(baronReplacements, repeatedSlice(ENEMY_ARACH, int16(math.Round(float64(len(barons))*0.1)))...)
+	baronReplacements = append(baronReplacements, repeatedSlice(ENEMY_REVENANT, int16(math.Round(float64(len(barons))*0.1)))...)
+	baronReplacements = append(baronReplacements, repeatedSlice(ENEMY_KNIGHT, int16(math.Round(float64(len(barons))*0.3)))...)
+	for done := len(baronReplacements) == 0 || len(barons) == 0; !done; done = len(baronReplacements) == 0 || len(barons) == 0 {
 		// Pick a random index
-		baronIndexIndex := rand.Intn(len(baronIndices))
-		baronIndex := baronIndices[baronIndexIndex]
+		baronIndex := rand.Intn(len(barons))
 
 		// Replace the baron
 		baron := things[baronIndex]
 		replacementIndex := rand.Intn(len(baronReplacements))
 		baron.Type = baronReplacements[replacementIndex]
 		baronReplacements = removeIndex(baronReplacements, int16(replacementIndex))
-		things[baronIndex] = baron
 
 		// Remove the index of the replaced baron from the candidate list
-		baronIndices = removeIndex(baronIndices, baronIndexIndex)
+		barons = append(barons[:baronIndex], barons[baronIndex:]...)
 	}
 
 	// Replace 10% of Pistol Zombies with Chaingunners, 5% with Medikits, 10% with Stimpacks, and 20% with Health Pots
 	pistolReplacements := []int16{}
-	pistolReplacements = append(pistolReplacements, repeatedSlice(ENEMY_CHAINGUNNER, int16(math.Round(float64(len(pistolIndices))*0.1)))...)
-	pistolReplacements = append(pistolReplacements, repeatedSlice(THING_MEDKIT, int16(math.Round(float64(len(pistolIndices))*0.05)))...)
-	pistolReplacements = append(pistolReplacements, repeatedSlice(THING_STIM, int16(math.Round(float64(len(pistolIndices))*0.1)))...)
-	pistolReplacements = append(pistolReplacements, repeatedSlice(THING_HEALTH, int16(math.Round(float64(len(pistolIndices))*0.2)))...)
-	for done := len(pistolReplacements) == 0 || len(pistolIndices) == 0; !done; done = len(pistolReplacements) == 0 || len(pistolIndices) == 0 {
+	pistolReplacements = append(pistolReplacements, repeatedSlice(ENEMY_CHAINGUNNER, int16(math.Round(float64(len(pistols))*0.1)))...)
+	pistolReplacements = append(pistolReplacements, repeatedSlice(THING_MEDKIT, int16(math.Round(float64(len(pistols))*0.05)))...)
+	pistolReplacements = append(pistolReplacements, repeatedSlice(THING_STIM, int16(math.Round(float64(len(pistols))*0.1)))...)
+	pistolReplacements = append(pistolReplacements, repeatedSlice(THING_HEALTH, int16(math.Round(float64(len(pistols))*0.2)))...)
+	for done := len(pistolReplacements) == 0 || len(pistols) == 0; !done; done = len(pistolReplacements) == 0 || len(pistols) == 0 {
 		// Pick a random index
-		pistolIndexIndex := rand.Intn(len(pistolIndices))
-		pistolIndex := pistolIndices[pistolIndexIndex]
+		pistolIndex := rand.Intn(len(pistols))
 
 		// Replace the pistol
 		pistol := things[pistolIndex]
 		replacementIndex := rand.Intn(len(pistolReplacements))
 		pistol.Type = pistolReplacements[replacementIndex]
 		pistolReplacements = removeIndex(pistolReplacements, int16(replacementIndex))
-		things[pistolIndex] = pistol
 
 		// Remove the index of the replaced pistol from the candidate list
-		pistolIndices = removeIndex(pistolIndices, pistolIndexIndex)
+		pistols = append(pistols[:pistolIndex], pistols[pistolIndex:]...)
 	}
 
 	// Move cursor to lump data

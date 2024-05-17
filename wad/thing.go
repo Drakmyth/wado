@@ -3,6 +3,7 @@ package wad
 import (
 	"bytes"
 	"encoding/binary"
+	"slices"
 )
 
 const SIZE_THING int = 10
@@ -53,4 +54,15 @@ func marshalThings(things []Thing) []byte {
 	}
 
 	return buf
+}
+
+func findAll(things []Thing, thingTypes ...int16) []*Thing {
+	found := make([]*Thing, 0, 10) // Arbitrarily start with 10 capacity since we don't know how many things we'll find
+	for i, thing := range things {
+		if slices.Contains(thingTypes, thing.Type) {
+			found = append(found, &things[i])
+		}
+	}
+
+	return found
 }
