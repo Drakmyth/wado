@@ -69,12 +69,12 @@ func findAllThings(things []Thing, thingTypes ...int16) []*Thing {
 	return found
 }
 
-func replaceThings(things *[]Thing, candidateTypes []int16, frequencies map[int16]float64) {
+func replaceThings(things *[]Thing, candidateTypes []int16, weights map[int16]float64) {
 	candidates := findAllThings(*things, candidateTypes...)
 
 	// Build bag of replacements to replace candidates with according to weights
 	replacements := []int16{}
-	for k, v := range frequencies {
+	for k, v := range weights {
 		cnt := int16(math.Round(float64(len(candidates)) * v))
 		replacements = append(replacements, repeatedSlice(k, cnt)...)
 	}
