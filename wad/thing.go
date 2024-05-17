@@ -3,6 +3,8 @@ package wad
 import (
 	"bytes"
 	"encoding/binary"
+	"math"
+	"math/rand"
 	"slices"
 )
 
@@ -56,7 +58,7 @@ func marshalThings(things []Thing) []byte {
 	return buf
 }
 
-func findAll(things []Thing, thingTypes ...int16) []*Thing {
+func findAllThings(things []Thing, thingTypes ...int16) []*Thing {
 	found := make([]*Thing, 0, 10) // Arbitrarily start with 10 capacity since we don't know how many things we'll find
 	for i, thing := range things {
 		if slices.Contains(thingTypes, thing.Type) {
@@ -65,4 +67,30 @@ func findAll(things []Thing, thingTypes ...int16) []*Thing {
 	}
 
 	return found
+}
+
+func replaceThings(things *[]Thing, candidateTypes []int16, frequencies map[int16]float64) {
+	candidates := findAllThings(*things, candidateTypes...)
+
+	// Build bag of replacements to replace candidates with according to weights
+	replacements := []int16{}
+	for k, v := range frequencies {
+		cnt := int16(math.Round(float64(len(candidates)) * v))
+		replacements = append(replacements, repeatedSlice(k, cnt)...)
+	}
+
+	// Replace candidates with replacements until we're out of one or the other
+	for done := len(replacements) == 0 || len(candidates) == 0; !done; done = len(replacements) == 0 || len(candidates) == 0 {
+		// Pick a random index
+		candidateIndex := rand.Intn(len(candidates))
+
+		// Replace the candidate
+		candidate := candidates[candidateIndex]
+		replacementIndex := rand.Intn(len(replacements))
+		candidate.Type = replacements[replacementIndex]
+		replacements = removeIndex(replacements, int16(replacementIndex))
+
+		// Remove the index of the replaced candidate from the candidate list
+		candidates = append(candidates[:candidateIndex], candidates[candidateIndex:]...)
+	}
 }
