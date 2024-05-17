@@ -149,7 +149,7 @@ var D2_REPLACEMENT_CANDIDATES = []int16{ENEMY_SHOTGUN, ENEMY_IMP, ENEMY_PINKY, E
 
 func Convert(in_filepath string, out_filepath string) error {
 	// Copy to output file so we don't have to worry about messing up the format or the source file
-	err := CopyFile(in_filepath, out_filepath)
+	err := copyFile(in_filepath, out_filepath)
 	if err != nil {
 		return err
 	}
@@ -393,9 +393,9 @@ func updateSidedefs(f *os.File, dir wadDirectoryEntry) error {
 			sidedef.XOffset += 32
 		}
 
-		sidedef.UpperTex = GetNewTexName(sidedef.UpperTex)
-		sidedef.MiddleTex = GetNewTexName(sidedef.MiddleTex)
-		sidedef.LowerTex = GetNewTexName(sidedef.LowerTex)
+		sidedef.UpperTex = getNewTexName(sidedef.UpperTex)
+		sidedef.MiddleTex = getNewTexName(sidedef.MiddleTex)
+		sidedef.LowerTex = getNewTexName(sidedef.LowerTex)
 		sidedefs[i] = sidedef
 	}
 
@@ -426,7 +426,7 @@ func shouldShiftTex(sidedef Sidedef) bool {
 	})
 }
 
-func GetNewTexName(oldName string) string {
+func getNewTexName(oldName string) string {
 	newName, replaced := TEXTURE_REPLACEMENTS[oldName]
 	if !replaced {
 		newName = oldName
@@ -435,7 +435,7 @@ func GetNewTexName(oldName string) string {
 	return newName
 }
 
-func CopyFile(srcPath string, destPath string) error {
+func copyFile(srcPath string, destPath string) error {
 	srcFile, err := os.Open(srcPath)
 	if err != nil {
 		return err
