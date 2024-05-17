@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
@@ -119,39 +118,24 @@ func convert(in_filepath string, out_filepath string) error {
 	}
 
 	// Open file
-	f, err := os.OpenFile(out_filepath, os.O_RDWR, 0)
+	wf, err := wad.OpenFile(out_filepath)
 	if err != nil {
 		return err
 	}
-	defer f.Close()
-
-	// Read WAD header
-	header := wad.WadFileHeader{}
-	err = binary.Read(f, binary.LittleEndian, &header)
-	if err != nil {
-		return err
-	}
-
-	// Position cursor at beginning of lump directory
-	_, err = f.Seek(int64(header.DirectoryOffset), io.SeekStart)
-	if err != nil {
-		return err
-	}
+	defer wf.Close()
 
 	mapNameRegexp := regexp.MustCompile(`^E(\d)M(\d)$`)
 
 	// For each lump...
-	for i := int32(0); i < header.LumpCount; i++ {
-		// Read the directory entry for this lump
-		dir := wad.WadDirectoryEntry{}
-		err = binary.Read(f, binary.LittleEndian, &dir)
-		if err != nil {
-			return err
+	for i, lump := range wf.Lumps {
+		// If lump needs to be renamed...
+		newName, rename := LUMP_REPLACEMENTS[lump.Name]
+		if rename {
+			wf.Lumps[i].Name = newName
 		}
 
 		// If lump is a map header...
-		lumpName := wad.NameToStr(dir.LumpName[:])
-		parts := mapNameRegexp.FindStringSubmatch(lumpName)
+		parts := mapNameRegexp.FindStringSubmatch(lump.Name)
 		if parts != nil {
 			episodeNumber, err := strconv.Atoi(parts[1])
 			if err != nil {
@@ -165,59 +149,22 @@ func convert(in_filepath string, out_filepath string) error {
 
 			// Convert map name from ExMy to MAPxx
 			mapNumber := ((episodeNumber - 1) * 9) + missionNumber
-			mapName := fmt.Sprintf("MAP%02d\x00\x00\x00", mapNumber)
-			copy(dir.LumpName[:], mapName)
-
-			// Rewind cursor to beginning of lump
-			_, err = f.Seek(-wad.SIZE_DIRENTRY, io.SeekCurrent)
-			if err != nil {
-				return err
-			}
-
-			// Overwrite old map header with updated one
-			err = binary.Write(f, binary.LittleEndian, dir)
-			if err != nil {
-				return err
-			}
+			newName := fmt.Sprintf("MAP%02d", mapNumber)
+			wf.Lumps[i].Name = newName
 		}
 
 		// If lump needs to be processed...
-		if slices.Contains(LUMPS_TO_PROCESS, lumpName) {
-			switch lumpName {
+		if slices.Contains(LUMPS_TO_PROCESS, lump.Name) {
+			switch lump.Name {
 			case wad.LUMP_THINGS:
-				err = updateThings(f, dir)
-				if err != nil {
-					return err
-				}
+				updateThings(&wf.Lumps[i])
 			case wad.LUMP_SIDEDEFS:
-				err = updateSidedefs(f, dir)
-				if err != nil {
-					return err
-				}
-			}
-		}
-
-		// If lump needs to be renamed...
-		newName, rename := LUMP_REPLACEMENTS[lumpName]
-		if rename {
-			// Update lump name in dir entry
-			copy(dir.LumpName[:], wad.StrToName(newName))
-
-			// Rewind cursor to beginning of dir entry
-			_, err = f.Seek(-wad.SIZE_DIRENTRY, io.SeekCurrent)
-			if err != nil {
-				return err
-			}
-
-			// Overwrite old dir entry with updated one
-			err = binary.Write(f, binary.LittleEndian, dir)
-			if err != nil {
-				return err
+				updateSidedefs(&wf.Lumps[i])
 			}
 		}
 	}
 
-	return nil
+	return wf.Save()
 }
 
 func copyFile(srcPath string, destPath string) error {
@@ -242,29 +189,11 @@ func copyFile(srcPath string, destPath string) error {
 	return err
 }
 
-func updateThings(f *os.File, dir wad.WadDirectoryEntry) error {
-	// Remember current cursor position
-	currentPosition, err := f.Seek(0, io.SeekCurrent)
-	if err != nil {
-		return err
-	}
-
-	// Move cursor to lump data
-	_, err = f.Seek(int64(dir.DataOffset), io.SeekStart)
-	if err != nil {
-		return err
-	}
-
-	// Read all things from file
-	tData := make([]byte, dir.DataLength)
-	numThings := dir.DataLength / int32(wad.SIZE_THING)
+func updateThings(lump *wad.Lump) {
+	// Read all things from lump data
+	numThings := len(lump.Data) / wad.SIZE_THING
 	things := make([]wad.Thing, numThings)
-
-	_, err = f.Read(tData)
-	if err != nil {
-		return err
-	}
-	wad.UnmarshalThings(things, tData)
+	wad.UnmarshalThings(things, lump.Data)
 
 	// Replace all shotguns with SSGs
 	shotguns := wad.FindAllThings(things, wad.THING_SHOTGUN)
@@ -305,50 +234,14 @@ func updateThings(f *os.File, dir wad.WadDirectoryEntry) error {
 		wad.THING_HEALTH:      0.2,
 	})
 
-	// Move cursor to lump data
-	_, err = f.Seek(int64(dir.DataOffset), io.SeekStart)
-	if err != nil {
-		return err
-	}
-
-	// Overwrite old things lump with updated one
-	_, err = f.Write(wad.MarshalThings(things))
-	if err != nil {
-		return err
-	}
-
-	// Return cursor to original position
-	_, err = f.Seek(currentPosition, io.SeekStart)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	lump.Data = wad.MarshalThings(things)
 }
 
-func updateSidedefs(f *os.File, dir wad.WadDirectoryEntry) error {
-	// Remember current cursor position
-	currentPosition, err := f.Seek(0, io.SeekCurrent)
-	if err != nil {
-		return err
-	}
-
-	// Move cursor to lump data
-	_, err = f.Seek(int64(dir.DataOffset), io.SeekStart)
-	if err != nil {
-		return err
-	}
-
-	// Read all sidedefs from file
-	sData := make([]byte, dir.DataLength)
-	numSidedefs := dir.DataLength / int32(wad.SIZE_SIDEDEF)
+func updateSidedefs(lump *wad.Lump) {
+	// Read all sidedefs from lump data
+	numSidedefs := len(lump.Data) / wad.SIZE_SIDEDEF
 	sidedefs := make([]wad.Sidedef, numSidedefs)
-
-	_, err = f.Read(sData)
-	if err != nil {
-		return err
-	}
-	wad.UnmarshalSidedefs(sidedefs, sData)
+	wad.UnmarshalSidedefs(sidedefs, lump.Data)
 
 	// Update texture names in sidedefs
 	for i, sidedef := range sidedefs {
@@ -362,25 +255,7 @@ func updateSidedefs(f *os.File, dir wad.WadDirectoryEntry) error {
 		sidedefs[i] = sidedef
 	}
 
-	// Move cursor to lump data
-	_, err = f.Seek(int64(dir.DataOffset), io.SeekStart)
-	if err != nil {
-		return err
-	}
-
-	// Overwrite old sidedefs lump with updated one
-	_, err = f.Write(wad.MarshalSidedefs(sidedefs))
-	if err != nil {
-		return err
-	}
-
-	// Return cursor to original position
-	_, err = f.Seek(currentPosition, io.SeekStart)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	lump.Data = wad.MarshalSidedefs(sidedefs)
 }
 
 func shouldShiftTex(sidedef wad.Sidedef) bool {

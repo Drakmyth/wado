@@ -5,18 +5,6 @@ import (
 	"strings"
 )
 
-type WadFileHeader struct {
-	Identifier      [4]byte
-	LumpCount       int32
-	DirectoryOffset int32
-}
-
-type WadDirectoryEntry struct {
-	DataOffset int32
-	DataLength int32
-	LumpName   [8]byte
-}
-
 func StrToName(str string) []byte {
 	name := [8]byte{}
 	paddedName := strings.ReplaceAll(fmt.Sprintf("%-8s", str), " ", "\x00")
