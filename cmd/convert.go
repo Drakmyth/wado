@@ -14,6 +14,81 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var TEXTURE_REPLACEMENTS = map[string]string{
+	"AASTINKY": "DOORSTOP",
+	"ASHWALL":  "ASHWALL2",
+	"BLODGR1":  "CEMENT9",
+	"BLODGR2":  "CEMENT9",
+	"BLODGR3":  "CEMENT9",
+	"BLODGR4":  "CEMENT9",
+	"BRNBIGC":  "MIDGRATE",
+	"BRNBIGL":  "MIDGRATE",
+	"BRNBIGR":  "MIDGRATE",
+	"BRNPOIS2": "BROWN96",
+	"BROVINE":  "BROWN1",
+	"BROWNWEL": "BROWNHUG",
+	"CEMPOIS":  "CEMENT1",
+	"COMP2":    "COMPTALL",
+	"COMPOHSO": "COMPWERD",
+	"COMPTILE": "COMPWERD",
+	"COMPUTE1": "COMPSTA1",
+	"COMPUTE2": "COMPTALL",
+	"COMPUTE3": "COMPTALL",
+	"DOORHI":   "TEKBRON2",
+	"GRAYDANG": "GRAY5",
+	"ICKDOOR1": "DOOR1",
+	"ICKWALL6": "ICKWALL5",
+	"LITE2":    "BROWN1",
+	"LITE4":    "LITE5",
+	"LITE96":   "BROWN96",
+	"LITEBLU2": "LITEBLU1",
+	"LITEBLU3": "LITEBLU1",
+	"LITEMET":  "METAL1",
+	"LITERED":  "DOORRED",
+	"LITESTON": "STONE2",
+	"MIDVINE1": "MIDGRATE",
+	"MIDVINE2": "MIDGRATE",
+	"NUKESLAD": "SLADWALL",
+	"PLANET1":  "COMPSTA2",
+	"REDWALL1": "REDWALL",
+	"SKINBORD": "SKINMET1",
+	"SKINTEK1": "SKINMET2",
+	"SKINTEK2": "SKSPINE1",
+	"SKULWAL3": "SKSPINE1",
+	"SKULWALL": "SKSPINE1",
+	"SLADRIP1": "SLADWALL",
+	"SLADRIP2": "SLADWALL",
+	"SLADRIP3": "SLADWALL",
+	"SP_DUDE3": "SP_DUDE4",
+	"SP_DUDE6": "SP_DUDE4",
+	"SP_ROCK2": "SP_ROCK1",
+	"STARTAN1": "STARTAN2",
+	"STONGARG": "STONE3",
+	"STONPOIS": "STONE",
+	"TEKWALL2": "TEKWALL4",
+	"TEKWALL3": "TEKWALL4",
+	"TEKWALL5": "TEKWALL4",
+	"WOODSKUL": "WOODGARG",
+}
+
+// These changed from 64x128 to 128x128 in Doom 2
+var SHIFT_TEXTURES = []string{"BRNPOIS", "NUKEPOIS", "SW1BRN1", "SW1STON2", "SW1STONE", "SW2BRN1", "SW2STON2", "SW2STONE"}
+
+var LUMP_REPLACEMENTS = map[string]string{
+	"D_INTER":  "D_DM2INT",
+	"D_INTRO":  "D_DM2TTL",
+	"D_VICTOR": "D_READ_M",
+	"SKY1":     "RSKY1",
+	"SKY2":     "RSKY2",
+	"SKY3":     "RSKY3",
+	"DEMO1":    "DEMO1_D",
+	"DEMO2":    "DEMO2_D",
+	"DEMO3":    "DEMO3_D",
+}
+
+var LUMPS_TO_PROCESS = []string{wad.LUMP_THINGS, wad.LUMP_SIDEDEFS}
+var D2_REPLACEMENT_CANDIDATES = []int16{wad.ENEMY_SHOTGUN, wad.ENEMY_IMP, wad.ENEMY_PINKY, wad.ENEMY_BARON, wad.ENEMY_PISTOL, wad.ENEMY_CACO, wad.ENEMY_SOUL}
+
 func init() {
 	rootCmd.AddCommand(convertCmd)
 }
@@ -107,7 +182,7 @@ func convert(in_filepath string, out_filepath string) error {
 		}
 
 		// If lump needs to be processed...
-		if slices.Contains(wad.LUMPS_TO_PROCESS, lumpName) {
+		if slices.Contains(LUMPS_TO_PROCESS, lumpName) {
 			switch lumpName {
 			case wad.LUMP_THINGS:
 				err = updateThings(f, dir)
@@ -123,7 +198,7 @@ func convert(in_filepath string, out_filepath string) error {
 		}
 
 		// If lump needs to be renamed...
-		newName, rename := wad.LUMP_REPLACEMENTS[lumpName]
+		newName, rename := LUMP_REPLACEMENTS[lumpName]
 		if rename {
 			// Update lump name in dir entry
 			copy(dir.LumpName[:], wad.StrToName(newName))
@@ -198,7 +273,7 @@ func updateThings(f *os.File, dir wad.WadDirectoryEntry) error {
 	}
 
 	// Generate 1 Megasphere, 1 Archvile, 1 Berserk, and 1 SSG
-	wad.ReplaceThingsCount(&things, wad.D2_REPLACEMENT_CANDIDATES, map[int16]int16{
+	wad.ReplaceThingsCount(&things, D2_REPLACEMENT_CANDIDATES, map[int16]int16{
 		wad.THING_MEGASPHERE: 1,
 		wad.ENEMY_ARCHVILE:   1,
 		wad.THING_BERSERK:    1,
@@ -277,13 +352,13 @@ func updateSidedefs(f *os.File, dir wad.WadDirectoryEntry) error {
 
 	// Update texture names in sidedefs
 	for i, sidedef := range sidedefs {
-		if wad.ShouldShiftTex(sidedef) {
+		if shouldShiftTex(sidedef) {
 			sidedef.XOffset += 32
 		}
 
-		sidedef.UpperTex = wad.GetNewTexName(sidedef.UpperTex)
-		sidedef.MiddleTex = wad.GetNewTexName(sidedef.MiddleTex)
-		sidedef.LowerTex = wad.GetNewTexName(sidedef.LowerTex)
+		sidedef.UpperTex = getNewTexName(sidedef.UpperTex)
+		sidedef.MiddleTex = getNewTexName(sidedef.MiddleTex)
+		sidedef.LowerTex = getNewTexName(sidedef.LowerTex)
 		sidedefs[i] = sidedef
 	}
 
@@ -306,4 +381,19 @@ func updateSidedefs(f *os.File, dir wad.WadDirectoryEntry) error {
 	}
 
 	return nil
+}
+
+func shouldShiftTex(sidedef wad.Sidedef) bool {
+	return slices.ContainsFunc(SHIFT_TEXTURES, func(tex string) bool {
+		return tex == sidedef.UpperTex || tex == sidedef.LowerTex || tex == sidedef.MiddleTex
+	})
+}
+
+func getNewTexName(oldName string) string {
+	newName, replaced := TEXTURE_REPLACEMENTS[oldName]
+	if !replaced {
+		newName = oldName
+	}
+
+	return newName
 }
