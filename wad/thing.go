@@ -69,7 +69,7 @@ func findAllThings(things []Thing, thingTypes ...int16) []*Thing {
 	return found
 }
 
-func replaceThings(things *[]Thing, candidateTypes []int16, weights map[int16]float64) {
+func replaceThingsWeighted(things *[]Thing, candidateTypes []int16, weights map[int16]float64) {
 	candidates := findAllThings(*things, candidateTypes...)
 
 	// Build bag of replacements to replace candidates with according to weights
@@ -79,6 +79,22 @@ func replaceThings(things *[]Thing, candidateTypes []int16, weights map[int16]fl
 		replacements = append(replacements, repeatedSlice(k, cnt)...)
 	}
 
+	executeReplacements(candidates, replacements)
+}
+
+func replaceThingsCount(things *[]Thing, candidateTypes []int16, counts map[int16]int16) {
+	candidates := findAllThings(*things, candidateTypes...)
+
+	// Build bag of replacements to replace candidates with according to counts
+	replacements := []int16{}
+	for k, cnt := range counts {
+		replacements = append(replacements, repeatedSlice(k, cnt)...)
+	}
+
+	executeReplacements(candidates, replacements)
+}
+
+func executeReplacements(candidates []*Thing, replacements []int16) {
 	// Replace candidates with replacements until we're out of one or the other
 	for done := len(replacements) == 0 || len(candidates) == 0; !done; done = len(replacements) == 0 || len(candidates) == 0 {
 		// Pick a random index

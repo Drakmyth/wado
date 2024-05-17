@@ -4,7 +4,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
-	"math/rand"
 	"os"
 	"regexp"
 	"slices"
@@ -42,7 +41,6 @@ const (
 
 const (
 	SIZE_DIRENTRY = 16
-	SIZE_SECTOR   = 26
 )
 
 const (
@@ -269,7 +267,7 @@ func updateThings(f *os.File, dir wadDirectoryEntry) error {
 		return err
 	}
 
-	// Read all sidedefs from file
+	// Read all things from file
 	tData := make([]byte, dir.DataLength)
 	numThings := dir.DataLength / int32(SIZE_THING)
 	things := make([]Thing, numThings)
@@ -287,41 +285,32 @@ func updateThings(f *os.File, dir wadDirectoryEntry) error {
 	}
 
 	// Generate 1 Megasphere, 1 Archvile, 1 Berserk, and 1 SSG
-	itemsToGenerate := []int16{THING_MEGASPHERE, ENEMY_ARCHVILE, THING_BERSERK, THING_SSG}
-	candidates := findAllThings(things, D2_REPLACEMENT_CANDIDATES...)
-	for done := false; !done; done = len(itemsToGenerate) == 0 || len(candidates) == 0 {
-		// Pick a random index
-		candidateIndex := rand.Intn(len(candidates))
-
-		// Replace the thing
-		candidate := candidates[candidateIndex]
-		generatedThingIndex := rand.Intn(len(itemsToGenerate))
-		candidate.Type = itemsToGenerate[generatedThingIndex]
-		itemsToGenerate = removeIndex(itemsToGenerate, int16(generatedThingIndex))
-
-		// Remove the index of the replaced thing from the candidate list
-		candidates = append(candidates[:candidateIndex], candidates[candidateIndex+1:]...)
-	}
+	replaceThingsCount(&things, D2_REPLACEMENT_CANDIDATES, map[int16]int16{
+		THING_MEGASPHERE: 1,
+		ENEMY_ARCHVILE:   1,
+		THING_BERSERK:    1,
+		THING_SSG:        1,
+	})
 
 	// Replace 20% of Imps with Chaingunners
-	replaceThings(&things, []int16{ENEMY_IMP}, map[int16]float64{
+	replaceThingsWeighted(&things, []int16{ENEMY_IMP}, map[int16]float64{
 		ENEMY_CHAINGUNNER: 0.2,
 	})
 
 	// Replace 10% of Cacodemons with Pain Elementals
-	replaceThings(&things, []int16{ENEMY_CACO}, map[int16]float64{
+	replaceThingsWeighted(&things, []int16{ENEMY_CACO}, map[int16]float64{
 		ENEMY_PAIN: 0.1,
 	})
 
-	// Replace 10% of BaronsImps with Arachnotrons, 10% with Revenants, and 30% with Hell Knights
-	replaceThings(&things, []int16{ENEMY_BARON}, map[int16]float64{
+	// Replace 10% of Barons with Arachnotrons, 10% with Revenants, and 30% with Hell Knights
+	replaceThingsWeighted(&things, []int16{ENEMY_BARON}, map[int16]float64{
 		ENEMY_ARACH:    0.1,
 		ENEMY_REVENANT: 0.1,
 		ENEMY_KNIGHT:   0.3,
 	})
 
 	// Replace 10% of Pistol Zombies with Chaingunners, 5% with Medikits, 10% with Stimpacks, and 20% with Health Pots
-	replaceThings(&things, []int16{ENEMY_PISTOL}, map[int16]float64{
+	replaceThingsWeighted(&things, []int16{ENEMY_PISTOL}, map[int16]float64{
 		ENEMY_CHAINGUNNER: 0.1,
 		THING_MEDKIT:      0.05,
 		THING_STIM:        0.1,
