@@ -85,7 +85,6 @@ var LUMP_REPLACEMENTS = map[string]string{
 	"DEMO3":    "DEMO3_D",
 }
 
-var LUMPS_TO_PROCESS = []string{wad.LUMP_THINGS, wad.LUMP_SIDEDEFS}
 var D2_REPLACEMENT_CANDIDATES = []int16{wad.ENEMY_SHOTGUN, wad.ENEMY_IMP, wad.ENEMY_PINKY, wad.ENEMY_BARON, wad.ENEMY_PISTOL, wad.ENEMY_CACO, wad.ENEMY_SOUL}
 
 func init() {
@@ -124,8 +123,6 @@ func convert(in_filepath string, out_filepath string) error {
 	}
 	defer wf.Close()
 
-	mapNameRegexp := regexp.MustCompile(`^E(\d)M(\d)$`)
-
 	// For each lump...
 	for i, lump := range wf.Lumps {
 		// If lump needs to be renamed...
@@ -133,35 +130,37 @@ func convert(in_filepath string, out_filepath string) error {
 		if rename {
 			wf.Lumps[i].Name = newName
 		}
+	}
 
-		// If lump is a map header...
-		parts := mapNameRegexp.FindStringSubmatch(lump.Name)
-		if parts != nil {
-			episodeNumber, err := strconv.Atoi(parts[1])
-			if err != nil {
-				return err
-			}
-
-			missionNumber, err := strconv.Atoi(parts[2])
-			if err != nil {
-				return err
-			}
-
-			// Convert map name from ExMy to MAPxx
-			mapNumber := ((episodeNumber - 1) * 9) + missionNumber
-			newName := fmt.Sprintf("MAP%02d", mapNumber)
-			wf.Lumps[i].Name = newName
+	// For each level...
+	levelNameRegexp := regexp.MustCompile(`^E(\d)M(\d)$`)
+	for i, level := range wf.Levels {
+		// Skip non-Doom1 levels
+		if !level.IsLevelFromGame(wad.GAME_DOOM) {
+			continue
 		}
 
-		// If lump needs to be processed...
-		if slices.Contains(LUMPS_TO_PROCESS, lump.Name) {
-			switch lump.Name {
-			case wad.LUMP_THINGS:
-				updateThings(&wf.Lumps[i])
-			case wad.LUMP_SIDEDEFS:
-				updateSidedefs(&wf.Lumps[i])
-			}
+		// Get episode number
+		parts := levelNameRegexp.FindStringSubmatch(*level.Name)
+		episodeNumber, err := strconv.Atoi(parts[1])
+		if err != nil {
+			return err
 		}
+
+		// Get mission number
+		missionNumber, err := strconv.Atoi(parts[2])
+		if err != nil {
+			return err
+		}
+
+		// Convert map name from ExMy to MAPxx
+		mapNumber := ((episodeNumber - 1) * 9) + missionNumber
+		newName := fmt.Sprintf("MAP%02d", mapNumber)
+		wf.Lumps[i].Name = newName
+
+		// Replace things and fix textures
+		updateThings(&level.Lumps[wad.LEVEL_THINGS])
+		updateSidedefs(&level.Lumps[wad.LEVEL_SIDEDEFS])
 	}
 
 	return wf.Save()

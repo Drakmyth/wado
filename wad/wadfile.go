@@ -4,17 +4,62 @@ import (
 	"encoding/binary"
 	"io"
 	"os"
+	"regexp"
 )
 
 type WadFile struct {
 	file       *os.File
 	Identifier string
 	Lumps      []Lump
+	Levels     []Level
 }
 
 type Lump struct {
 	Name string
 	Data []byte
+}
+
+const (
+	LEVEL_HEADER int = iota
+	LEVEL_THINGS
+	LEVEL_LINEDEFS
+	LEVEL_SIDEDEFS
+	LEVEL_VERTEXES
+	LEVEL_SEGS
+	LEVEL_SSECTORS
+	LEVEL_NODES
+	LEVEL_SECTORS
+	LEVEL_REJECT
+	LEVEL_BLOCKMAP
+)
+
+type Game int
+
+const (
+	GAME_DOOM Game = iota
+	GAME_DOOM2
+)
+
+type Level struct {
+	Name  *string
+	Lumps []Lump
+}
+
+func (l Level) IsLevelFromGame(game Game) bool {
+	return isLevelFromGame(l.Lumps[LEVEL_HEADER].Name, game)
+}
+
+func isLevelFromGame(name string, game Game) bool {
+	switch game {
+	case GAME_DOOM:
+		d1LevelNameRegexp := regexp.MustCompile(`^E(\d)M(\d)$`)
+		return d1LevelNameRegexp.MatchString(name)
+	case GAME_DOOM2:
+		d2LevelNameRegexp := regexp.MustCompile(`^MAP(\d+)$`)
+		return d2LevelNameRegexp.MatchString(name)
+	}
+
+	return false
 }
 
 func OpenFile(filepath string) (*WadFile, error) {
@@ -33,23 +78,41 @@ func OpenFile(filepath string) (*WadFile, error) {
 		return nil, err
 	}
 
+	levelHeaderIndices := make([]int, 0, 9)
 	lumps := make([]Lump, 0, header.LumpCount)
-	for _, dir := range directory {
+	for i, dir := range directory {
 		lumpData, err := parseLumpData(f, dir.DataOffset, dir.DataLength)
 		if err != nil {
 			return nil, err
 		}
 
-		lumps = append(lumps, Lump{
+		lump := Lump{
 			Name: NameToStr(dir.LumpName[:]),
 			Data: lumpData,
-		})
+		}
+		lumps = append(lumps, lump)
+
+		if isLevelFromGame(lump.Name, GAME_DOOM) || isLevelFromGame(lump.Name, GAME_DOOM2) {
+			levelHeaderIndices = append(levelHeaderIndices, i)
+		}
+	}
+
+	levels := make([]Level, 0, len(levelHeaderIndices))
+	for _, i := range levelHeaderIndices {
+		levelLumps := lumps[i : i+11]
+		level := Level{
+			Name:  &levelLumps[LEVEL_HEADER].Name,
+			Lumps: levelLumps,
+		}
+
+		levels = append(levels, level)
 	}
 
 	return &WadFile{
 		file:       f,
 		Identifier: string(header.Identifier[:]),
 		Lumps:      lumps,
+		Levels:     levels,
 	}, nil
 }
 
