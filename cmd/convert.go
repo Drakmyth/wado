@@ -159,8 +159,8 @@ func convert(in_filepath string, out_filepath string) error {
 		wf.Lumps[i].Name = newName
 
 		// Replace things and fix textures
-		updateThings(&level.Lumps[wad.LEVEL_THINGS])
-		updateSidedefs(&level.Lumps[wad.LEVEL_SIDEDEFS])
+		updateThings(level.Things)
+		updateSidedefs(level.Sidedefs)
 	}
 
 	return wf.Save()

@@ -19,20 +19,6 @@ type Lump struct {
 	Data []byte
 }
 
-const (
-	LEVEL_HEADER int = iota
-	LEVEL_THINGS
-	LEVEL_LINEDEFS
-	LEVEL_SIDEDEFS
-	LEVEL_VERTEXES
-	LEVEL_SEGS
-	LEVEL_SSECTORS
-	LEVEL_NODES
-	LEVEL_SECTORS
-	LEVEL_REJECT
-	LEVEL_BLOCKMAP
-)
-
 type Game int
 
 const (
@@ -41,12 +27,23 @@ const (
 )
 
 type Level struct {
-	Name  *string
-	Lumps []Lump
+	Name       *string
+	Lumps      []Lump
+	Header     *Lump
+	Things     *Lump
+	Linedefs   *Lump
+	Sidedefs   *Lump
+	Vertexes   *Lump
+	Segments   *Lump
+	Subsectors *Lump
+	Nodes      *Lump
+	Sectors    *Lump
+	Reject     *Lump
+	Blockmap   *Lump
 }
 
 func (l Level) IsLevelFromGame(game Game) bool {
-	return isLevelFromGame(l.Lumps[LEVEL_HEADER].Name, game)
+	return isLevelFromGame(*l.Name, game)
 }
 
 func isLevelFromGame(name string, game Game) bool {
@@ -101,8 +98,19 @@ func OpenFile(filepath string) (*WadFile, error) {
 	for _, i := range levelHeaderIndices {
 		levelLumps := lumps[i : i+11]
 		level := Level{
-			Name:  &levelLumps[LEVEL_HEADER].Name,
-			Lumps: levelLumps,
+			Name:       &levelLumps[0].Name,
+			Lumps:      levelLumps,
+			Header:     &levelLumps[0],
+			Things:     &levelLumps[1],
+			Linedefs:   &levelLumps[2],
+			Sidedefs:   &levelLumps[3],
+			Vertexes:   &levelLumps[4],
+			Segments:   &levelLumps[5],
+			Subsectors: &levelLumps[6],
+			Nodes:      &levelLumps[7],
+			Sectors:    &levelLumps[8],
+			Reject:     &levelLumps[9],
+			Blockmap:   &levelLumps[10],
 		}
 
 		levels = append(levels, level)
