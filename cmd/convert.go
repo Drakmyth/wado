@@ -156,7 +156,7 @@ func convert(in_filepath string, out_filepath string) error {
 		// Convert map name from ExMy to MAPxx
 		mapNumber := ((episodeNumber - 1) * 9) + missionNumber
 		newName := fmt.Sprintf("MAP%02d", mapNumber)
-		wf.Lumps[i].Name = newName
+		wf.Levels[i].Header.Name = newName
 
 		// Replace things and fix textures
 		updateThings(level.Things)
