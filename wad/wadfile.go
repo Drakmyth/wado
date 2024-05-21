@@ -28,7 +28,7 @@ const (
 
 type Level struct {
 	Name       string
-	Things     Lump
+	Things     []Thing
 	Linedefs   Lump
 	Sidedefs   Lump
 	Vertexes   Lump
@@ -52,7 +52,7 @@ func (l Level) toLumps() []Lump {
 
 	lumps := make([]Lump, 0, 11)
 	lumps = append(lumps, levelHeader)
-	lumps = append(lumps, l.Things)
+	lumps = append(lumps, makeThingsLump(l.Things))
 	lumps = append(lumps, l.Linedefs)
 	lumps = append(lumps, l.Sidedefs)
 	lumps = append(lumps, l.Vertexes)
@@ -64,6 +64,13 @@ func (l Level) toLumps() []Lump {
 	lumps = append(lumps, l.Blockmap)
 
 	return lumps
+}
+
+func makeThingsLump(things []Thing) Lump {
+	return Lump{
+		Name: LUMP_THINGS,
+		Data: MarshalThings(things),
+	}
 }
 
 func isLevelFromGame(name string, game Game) bool {

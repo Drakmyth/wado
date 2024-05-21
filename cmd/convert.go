@@ -159,7 +159,7 @@ func convert(in_filepath string, out_filepath string) error {
 		wf.Levels[i].Name = newName
 
 		// Replace things and fix textures
-		updateThings(&wf.Levels[i].Things)
+		updateThings(&wf.Levels[i])
 		updateSidedefs(&wf.Levels[i].Sidedefs)
 	}
 
@@ -188,20 +188,15 @@ func copyFile(srcPath string, destPath string) error {
 	return err
 }
 
-func updateThings(lump *wad.Lump) {
-	// Read all things from lump data
-	numThings := len(lump.Data) / wad.SIZE_THING
-	things := make([]wad.Thing, numThings)
-	wad.UnmarshalThings(things, lump.Data)
-
+func updateThings(level *wad.Level) {
 	// Replace all shotguns with SSGs
-	shotguns := wad.FindAllThings(things, wad.THING_SHOTGUN)
+	shotguns := wad.FindAllThings(level.Things, wad.THING_SHOTGUN)
 	for _, shotgun := range shotguns {
 		shotgun.Type = wad.THING_SSG
 	}
 
 	// Generate 1 Megasphere, 1 Archvile, 1 Berserk, and 1 SSG
-	wad.ReplaceThingsCount(&things, D2_REPLACEMENT_CANDIDATES, map[int16]int16{
+	wad.ReplaceThingsCount(&level.Things, D2_REPLACEMENT_CANDIDATES, map[int16]int16{
 		wad.THING_MEGASPHERE: 1,
 		wad.ENEMY_ARCHVILE:   1,
 		wad.THING_BERSERK:    1,
@@ -209,31 +204,29 @@ func updateThings(lump *wad.Lump) {
 	})
 
 	// Replace 20% of Imps with Chaingunners
-	wad.ReplaceThingsWeighted(&things, []int16{wad.ENEMY_IMP}, map[int16]float64{
+	wad.ReplaceThingsWeighted(&level.Things, []int16{wad.ENEMY_IMP}, map[int16]float64{
 		wad.ENEMY_CHAINGUNNER: 0.2,
 	})
 
 	// Replace 10% of Cacodemons with Pain Elementals
-	wad.ReplaceThingsWeighted(&things, []int16{wad.ENEMY_CACO}, map[int16]float64{
+	wad.ReplaceThingsWeighted(&level.Things, []int16{wad.ENEMY_CACO}, map[int16]float64{
 		wad.ENEMY_PAIN: 0.1,
 	})
 
 	// Replace 10% of Barons with Arachnotrons, 10% with Revenants, and 30% with Hell Knights
-	wad.ReplaceThingsWeighted(&things, []int16{wad.ENEMY_BARON}, map[int16]float64{
+	wad.ReplaceThingsWeighted(&level.Things, []int16{wad.ENEMY_BARON}, map[int16]float64{
 		wad.ENEMY_ARACH:    0.1,
 		wad.ENEMY_REVENANT: 0.1,
 		wad.ENEMY_KNIGHT:   0.3,
 	})
 
 	// Replace 10% of Pistol Zombies with Chaingunners, 5% with Medikits, 10% with Stimpacks, and 20% with Health Pots
-	wad.ReplaceThingsWeighted(&things, []int16{wad.ENEMY_PISTOL}, map[int16]float64{
+	wad.ReplaceThingsWeighted(&level.Things, []int16{wad.ENEMY_PISTOL}, map[int16]float64{
 		wad.ENEMY_CHAINGUNNER: 0.1,
 		wad.THING_MEDKIT:      0.05,
 		wad.THING_STIM:        0.1,
 		wad.THING_HEALTH:      0.2,
 	})
-
-	lump.Data = wad.MarshalThings(things)
 }
 
 func updateSidedefs(lump *wad.Lump) {
