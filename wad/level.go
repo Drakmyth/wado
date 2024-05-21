@@ -5,7 +5,7 @@ import "slices"
 type Level struct {
 	Name       string
 	Things     []Thing
-	Linedefs   Lump
+	Linedefs   []Linedef
 	Sidedefs   []Sidedef
 	Vertexes   Lump
 	Segments   Lump
@@ -29,7 +29,7 @@ func (l Level) toLumps() []Lump {
 	lumps := make([]Lump, 0, 11)
 	lumps = append(lumps, levelHeader)
 	lumps = append(lumps, makeThingsLump(l.Things))
-	lumps = append(lumps, l.Linedefs)
+	lumps = append(lumps, makeLinedefsLump(l.Linedefs))
 	lumps = append(lumps, makeSidedefsLump(l.Sidedefs))
 	lumps = append(lumps, l.Vertexes)
 	lumps = append(lumps, l.Segments)

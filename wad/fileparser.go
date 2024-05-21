@@ -100,7 +100,7 @@ func parseLevel(f *os.File, levelName string, levelDirEntries []fileDirectoryEnt
 	level := Level{
 		Name:       levelName,
 		Things:     parseThings(lumpMap[LUMP_THINGS].Data),
-		Linedefs:   lumpMap[LUMP_LINEDEFS],
+		Linedefs:   parseLinedefs(lumpMap[LUMP_LINEDEFS].Data),
 		Sidedefs:   parseSidedefs(lumpMap[LUMP_SIDEDEFS].Data),
 		Vertexes:   lumpMap[LUMP_VERTEXES],
 		Segments:   lumpMap[LUMP_SEGMENTS],
@@ -122,9 +122,15 @@ func parseThings(data []byte) []Thing {
 }
 
 func parseSidedefs(data []byte) []Sidedef {
-	// Read all sidedefs from lump data
 	numSidedefs := len(data) / SIZE_SIDEDEF
 	sidedefs := make([]Sidedef, numSidedefs)
 	unmarshalSidedefs(sidedefs, data)
 	return sidedefs
+}
+
+func parseLinedefs(data []byte) []Linedef {
+	numLinedefs := len(data) / SIZE_LINEDEF
+	linedefs := make([]Linedef, numLinedefs)
+	unmarshalLinedefs(linedefs, data)
+	return linedefs
 }
