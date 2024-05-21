@@ -19,9 +19,9 @@ type Sidedef struct {
 func (s *Sidedef) unmarshalBinary(data []byte) error {
 	s.XOffset = int16(binary.LittleEndian.Uint16(data[0:2]))
 	s.YOffset = int16(binary.LittleEndian.Uint16(data[2:4]))
-	s.UpperTex = NameToStr(data[4:12])
-	s.LowerTex = NameToStr(data[12:20])
-	s.MiddleTex = NameToStr(data[20:28])
+	s.UpperTex = nameToStr(data[4:12])
+	s.LowerTex = nameToStr(data[12:20])
+	s.MiddleTex = nameToStr(data[20:28])
 	s.FacingSector = int16(binary.LittleEndian.Uint16(data[28:30]))
 
 	return nil
@@ -31,9 +31,9 @@ func (s Sidedef) marshalBinary() ([]byte, error) {
 	sbytes := [SIZE_SIDEDEF]byte{}
 	binary.LittleEndian.PutUint16(sbytes[0:2], uint16(s.XOffset))
 	binary.LittleEndian.PutUint16(sbytes[2:4], uint16(s.YOffset))
-	copy(sbytes[4:12], StrToName(s.UpperTex))
-	copy(sbytes[12:20], StrToName(s.LowerTex))
-	copy(sbytes[20:28], StrToName(s.MiddleTex))
+	copy(sbytes[4:12], strToName(s.UpperTex))
+	copy(sbytes[12:20], strToName(s.LowerTex))
+	copy(sbytes[20:28], strToName(s.MiddleTex))
 	binary.LittleEndian.PutUint16(sbytes[28:30], uint16(s.FacingSector))
 
 	return sbytes[:], nil
@@ -56,4 +56,11 @@ func marshalSidedefs(sidedefs []Sidedef) []byte {
 	}
 
 	return buf
+}
+
+func makeSidedefsLump(sidedefs []Sidedef) Lump {
+	return Lump{
+		Name: LUMP_SIDEDEFS,
+		Data: marshalSidedefs(sidedefs),
+	}
 }

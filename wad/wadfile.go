@@ -2,9 +2,11 @@ package wad
 
 import (
 	"encoding/binary"
+	"fmt"
 	"io"
 	"os"
 	"regexp"
+	"strings"
 )
 
 type WadFile struct {
@@ -25,20 +27,6 @@ const (
 	GAME_DOOM Game = iota
 	GAME_DOOM2
 )
-
-func makeThingsLump(things []Thing) Lump {
-	return Lump{
-		Name: LUMP_THINGS,
-		Data: marshalThings(things),
-	}
-}
-
-func makeSidedefsLump(sidedefs []Sidedef) Lump {
-	return Lump{
-		Name: LUMP_SIDEDEFS,
-		Data: marshalSidedefs(sidedefs),
-	}
-}
 
 func isLevelFromGame(name string, game Game) bool {
 	switch game {
@@ -79,7 +67,7 @@ func OpenFile(filepath string) (*WadFile, error) {
 		}
 
 		lump := Lump{
-			Name: NameToStr(dir.LumpName[:]),
+			Name: nameToStr(dir.LumpName[:]),
 			Data: lumpData,
 		}
 
@@ -174,7 +162,7 @@ func makeDirectory(lumps []Lump) []fileDirectoryEntry {
 	offset := SIZE_HEADER
 	for _, lump := range lumps {
 		lumpName := [8]byte{}
-		copy(lumpName[:], StrToName(lump.Name))
+		copy(lumpName[:], strToName(lump.Name))
 		lumpSize := len(lump.Data)
 
 		dir := fileDirectoryEntry{
@@ -188,4 +176,15 @@ func makeDirectory(lumps []Lump) []fileDirectoryEntry {
 	}
 
 	return directory
+}
+
+func strToName(str string) []byte {
+	name := [8]byte{}
+	paddedName := strings.ReplaceAll(fmt.Sprintf("%-8s", str), " ", "\x00")
+	copy(name[:], paddedName)
+	return name[:]
+}
+
+func nameToStr(name []byte) string {
+	return strings.Trim(string(name), "\x00")
 }

@@ -3,7 +3,6 @@ package wad
 import (
 	"bytes"
 	"encoding/binary"
-	"math"
 	"math/rand"
 )
 
@@ -57,25 +56,11 @@ func marshalThings(things []Thing) []byte {
 	return buf
 }
 
-func ReplaceThingsWeighted(candidates []*Thing, weights map[int16]float64) {
-	// Build bag of replacements to replace candidates with according to weights
-	replacements := []int16{}
-	for k, v := range weights {
-		cnt := int16(math.Round(float64(len(candidates)) * v))
-		replacements = append(replacements, repeatedSlice(k, cnt)...)
+func makeThingsLump(things []Thing) Lump {
+	return Lump{
+		Name: LUMP_THINGS,
+		Data: marshalThings(things),
 	}
-
-	executeReplacements(candidates, replacements)
-}
-
-func ReplaceThingsCount(candidates []*Thing, counts map[int16]int16) {
-	// Build bag of replacements to replace candidates with according to counts
-	replacements := []int16{}
-	for k, cnt := range counts {
-		replacements = append(replacements, repeatedSlice(k, cnt)...)
-	}
-
-	executeReplacements(candidates, replacements)
 }
 
 func executeReplacements(candidates []*Thing, replacements []int16) {

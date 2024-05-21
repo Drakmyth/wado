@@ -83,7 +83,7 @@ func parseLevel(f *os.File, levelName string, levelDirEntries []fileDirectoryEnt
 
 	for _, dir := range levelDirEntries {
 
-		lumpName := NameToStr(dir.LumpName[:])
+		lumpName := nameToStr(dir.LumpName[:])
 		lumpData, err := parseLumpData(f, dir.DataOffset, dir.DataLength)
 		if err != nil {
 			return Level{}, err
