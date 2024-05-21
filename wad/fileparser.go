@@ -77,3 +77,39 @@ func parseLumpData(f *os.File, offset int32, length int32) ([]byte, error) {
 	}
 	return lumpData, nil
 }
+
+func parseLevel(f *os.File, levelName string, levelDirEntries []fileDirectoryEntry) (Level, error) {
+	lumpMap := map[string]Lump{}
+
+	for _, dir := range levelDirEntries {
+
+		lumpName := NameToStr(dir.LumpName[:])
+		lumpData, err := parseLumpData(f, dir.DataOffset, dir.DataLength)
+		if err != nil {
+			return Level{}, err
+		}
+
+		lump := Lump{
+			Name: lumpName,
+			Data: lumpData,
+		}
+
+		lumpMap[lumpName] = lump
+	}
+
+	level := Level{
+		Name:       levelName,
+		Things:     lumpMap[LUMP_THINGS],
+		Linedefs:   lumpMap[LUMP_LINEDEFS],
+		Sidedefs:   lumpMap[LUMP_SIDEDEFS],
+		Vertexes:   lumpMap[LUMP_VERTEXES],
+		Segments:   lumpMap[LUMP_SEGMENTS],
+		Subsectors: lumpMap[LUMP_SUBSECTORS],
+		Nodes:      lumpMap[LUMP_NODES],
+		Sectors:    lumpMap[LUMP_SECTORS],
+		Reject:     lumpMap[LUMP_REJECT],
+		Blockmap:   lumpMap[LUMP_BLOCKMAP],
+	}
+
+	return level, nil
+}

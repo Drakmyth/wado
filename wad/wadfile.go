@@ -27,23 +27,43 @@ const (
 )
 
 type Level struct {
-	Name       *string
-	Lumps      []Lump
-	Header     *Lump
-	Things     *Lump
-	Linedefs   *Lump
-	Sidedefs   *Lump
-	Vertexes   *Lump
-	Segments   *Lump
-	Subsectors *Lump
-	Nodes      *Lump
-	Sectors    *Lump
-	Reject     *Lump
-	Blockmap   *Lump
+	Name       string
+	Things     Lump
+	Linedefs   Lump
+	Sidedefs   Lump
+	Vertexes   Lump
+	Segments   Lump
+	Subsectors Lump
+	Nodes      Lump
+	Sectors    Lump
+	Reject     Lump
+	Blockmap   Lump
 }
 
 func (l Level) IsLevelFromGame(game Game) bool {
-	return isLevelFromGame(*l.Name, game)
+	return isLevelFromGame(l.Name, game)
+}
+
+func (l Level) toLumps() []Lump {
+	levelHeader := Lump{
+		Name: l.Name,
+		Data: []byte{},
+	}
+
+	lumps := make([]Lump, 0, 11)
+	lumps = append(lumps, levelHeader)
+	lumps = append(lumps, l.Things)
+	lumps = append(lumps, l.Linedefs)
+	lumps = append(lumps, l.Sidedefs)
+	lumps = append(lumps, l.Vertexes)
+	lumps = append(lumps, l.Segments)
+	lumps = append(lumps, l.Subsectors)
+	lumps = append(lumps, l.Nodes)
+	lumps = append(lumps, l.Sectors)
+	lumps = append(lumps, l.Reject)
+	lumps = append(lumps, l.Blockmap)
+
+	return lumps
 }
 
 func isLevelFromGame(name string, game Game) bool {
@@ -75,9 +95,10 @@ func OpenFile(filepath string) (*WadFile, error) {
 		return nil, err
 	}
 
-	levelHeaderIndices := make([]int, 0, 9)
+	levels := make([]Level, 0, 9)
 	lumps := make([]Lump, 0, header.LumpCount)
-	for i, dir := range directory {
+	for i := 0; i < len(directory); i++ {
+		dir := directory[i]
 		lumpData, err := parseLumpData(f, dir.DataOffset, dir.DataLength)
 		if err != nil {
 			return nil, err
@@ -87,33 +108,17 @@ func OpenFile(filepath string) (*WadFile, error) {
 			Name: NameToStr(dir.LumpName[:]),
 			Data: lumpData,
 		}
-		lumps = append(lumps, lump)
 
 		if isLevelFromGame(lump.Name, GAME_DOOM) || isLevelFromGame(lump.Name, GAME_DOOM2) {
-			levelHeaderIndices = append(levelHeaderIndices, i)
+			level, err := parseLevel(f, lump.Name, directory[i+1:i+11])
+			if err != nil {
+				return nil, err
+			}
+			levels = append(levels, level)
+			i += 10
+		} else {
+			lumps = append(lumps, lump)
 		}
-	}
-
-	levels := make([]Level, 0, len(levelHeaderIndices))
-	for _, i := range levelHeaderIndices {
-		levelLumps := lumps[i : i+11]
-		level := Level{
-			Name:       &levelLumps[0].Name,
-			Lumps:      levelLumps,
-			Header:     &levelLumps[0],
-			Things:     &levelLumps[1],
-			Linedefs:   &levelLumps[2],
-			Sidedefs:   &levelLumps[3],
-			Vertexes:   &levelLumps[4],
-			Segments:   &levelLumps[5],
-			Subsectors: &levelLumps[6],
-			Nodes:      &levelLumps[7],
-			Sectors:    &levelLumps[8],
-			Reject:     &levelLumps[9],
-			Blockmap:   &levelLumps[10],
-		}
-
-		levels = append(levels, level)
 	}
 
 	return &WadFile{
@@ -137,20 +142,29 @@ func (wf WadFile) Save() error {
 
 	f := wf.file
 
-	header := wf.makeHeader()
+	lumps := make([]Lump, 0, len(wf.Lumps)+len(wf.Levels)*11)
+
+	for _, level := range wf.Levels {
+		levelLumps := level.toLumps()
+		lumps = append(lumps, levelLumps...)
+	}
+
+	lumps = append(lumps, wf.Lumps...)
+
+	header := makeHeader(wf.Identifier, lumps)
 	err = binary.Write(f, binary.LittleEndian, header)
 	if err != nil {
 		return err
 	}
 
-	for _, lump := range wf.Lumps {
+	for _, lump := range lumps {
 		err = binary.Write(f, binary.LittleEndian, lump.Data)
 		if err != nil {
 			return err
 		}
 	}
 
-	directory := wf.makeDirectory()
+	directory := makeDirectory(lumps)
 	err = binary.Write(f, binary.LittleEndian, directory)
 	if err != nil {
 		return err
@@ -163,28 +177,28 @@ func (wf WadFile) Close() error {
 	return wf.file.Close()
 }
 
-func (wf WadFile) makeHeader() fileHeader {
+func makeHeader(identifier string, lumps []Lump) fileHeader {
 
 	directoryOffset := SIZE_HEADER
-	for _, lump := range wf.Lumps {
+	for _, lump := range lumps {
 		directoryOffset += len(lump.Data)
 	}
 
 	ident := [4]byte{}
-	copy(ident[:], []byte(wf.Identifier))
+	copy(ident[:], []byte(identifier))
 
 	return fileHeader{
 		Identifier:      ident,
-		LumpCount:       int32(len(wf.Lumps)),
+		LumpCount:       int32(len(lumps)),
 		DirectoryOffset: int32(directoryOffset),
 	}
 }
 
-func (wf WadFile) makeDirectory() []fileDirectoryEntry {
-	directory := make([]fileDirectoryEntry, 0, len(wf.Lumps))
+func makeDirectory(lumps []Lump) []fileDirectoryEntry {
+	directory := make([]fileDirectoryEntry, 0, len(lumps))
 
 	offset := SIZE_HEADER
-	for _, lump := range wf.Lumps {
+	for _, lump := range lumps {
 		lumpName := [8]byte{}
 		copy(lumpName[:], StrToName(lump.Name))
 		lumpSize := len(lump.Data)

@@ -141,7 +141,7 @@ func convert(in_filepath string, out_filepath string) error {
 		}
 
 		// Get episode number
-		parts := levelNameRegexp.FindStringSubmatch(*level.Name)
+		parts := levelNameRegexp.FindStringSubmatch(level.Name)
 		episodeNumber, err := strconv.Atoi(parts[1])
 		if err != nil {
 			return err
@@ -156,11 +156,11 @@ func convert(in_filepath string, out_filepath string) error {
 		// Convert map name from ExMy to MAPxx
 		mapNumber := ((episodeNumber - 1) * 9) + missionNumber
 		newName := fmt.Sprintf("MAP%02d", mapNumber)
-		wf.Levels[i].Header.Name = newName
+		wf.Levels[i].Name = newName
 
 		// Replace things and fix textures
-		updateThings(level.Things)
-		updateSidedefs(level.Sidedefs)
+		updateThings(&wf.Levels[i].Things)
+		updateSidedefs(&wf.Levels[i].Sidedefs)
 	}
 
 	return wf.Save()
