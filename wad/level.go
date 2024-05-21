@@ -28,7 +28,7 @@ func (l Level) toLumps() []Lump {
 
 	lumps := make([]Lump, 0, 11)
 	lumps = append(lumps, levelHeader)
-	lumps = append(lumps, makeThingsLump(l.Things))
+	lumps = append(lumps, Things(l.Things).toLump())
 	lumps = append(lumps, makeLinedefsLump(l.Linedefs))
 	lumps = append(lumps, makeSidedefsLump(l.Sidedefs))
 	lumps = append(lumps, l.Vertexes)

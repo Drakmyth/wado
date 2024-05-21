@@ -8,6 +8,7 @@ import (
 
 const SIZE_THING int = 10
 
+type Things []Thing
 type Thing struct {
 	X     int16
 	Y     int16
@@ -16,17 +17,15 @@ type Thing struct {
 	Flags int16
 }
 
-func (t *Thing) unmarshalBinary(data []byte) error {
+func (t *Thing) fromBytes(data []byte) {
 	t.X = int16(binary.LittleEndian.Uint16(data[0:2]))
 	t.Y = int16(binary.LittleEndian.Uint16(data[2:4]))
 	t.Angle = int16(binary.LittleEndian.Uint16(data[4:6]))
 	t.Type = int16(binary.LittleEndian.Uint16(data[6:8]))
 	t.Flags = int16(binary.LittleEndian.Uint16(data[8:10]))
-
-	return nil
 }
 
-func (t Thing) marshalBinary() ([]byte, error) {
+func (t Thing) toBytes() []byte {
 	tbytes := [SIZE_THING]byte{}
 	binary.LittleEndian.PutUint16(tbytes[0:2], uint16(t.X))
 	binary.LittleEndian.PutUint16(tbytes[2:4], uint16(t.Y))
@@ -34,32 +33,33 @@ func (t Thing) marshalBinary() ([]byte, error) {
 	binary.LittleEndian.PutUint16(tbytes[6:8], uint16(t.Type))
 	binary.LittleEndian.PutUint16(tbytes[8:10], uint16(t.Flags))
 
-	return tbytes[:], nil
+	return tbytes[:]
 }
 
-func unmarshalThings(things []Thing, data []byte) {
+func parseThings(data []byte) []Thing {
+	numThings := len(data) / SIZE_THING
+	things := make([]Thing, numThings)
+
 	buf := bytes.NewBuffer(data)
 	for i, t := range things {
 		tbytes := buf.Next(SIZE_THING)
-		t.unmarshalBinary(tbytes)
+		t.fromBytes(tbytes)
 		things[i] = t
 	}
+
+	return things
 }
 
-func marshalThings(things []Thing) []byte {
+func (things Things) toLump() Lump {
 	buf := make([]byte, 0, len(things)*SIZE_THING)
 	for _, t := range things {
-		tbytes, _ := t.marshalBinary()
+		tbytes := t.toBytes()
 		buf = append(buf, tbytes...)
 	}
 
-	return buf
-}
-
-func makeThingsLump(things []Thing) Lump {
 	return Lump{
 		Name: LUMP_THINGS,
-		Data: marshalThings(things),
+		Data: buf,
 	}
 }
 

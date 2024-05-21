@@ -114,13 +114,6 @@ func parseLevel(f *os.File, levelName string, levelDirEntries []fileDirectoryEnt
 	return level, nil
 }
 
-func parseThings(data []byte) []Thing {
-	numThings := len(data) / SIZE_THING
-	things := make([]Thing, numThings)
-	unmarshalThings(things, data)
-	return things
-}
-
 func parseSidedefs(data []byte) []Sidedef {
 	numSidedefs := len(data) / SIZE_SIDEDEF
 	sidedefs := make([]Sidedef, numSidedefs)
