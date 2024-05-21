@@ -104,17 +104,11 @@ func executeReplacements(candidates []*Thing, replacements []int16) {
 		candidate := candidates[candidateIndex]
 		replacementIndex := rand.Intn(len(replacements))
 		candidate.Type = replacements[replacementIndex]
-		replacements = removeIndex(replacements, int16(replacementIndex))
+		replacements = append(replacements[:replacementIndex], replacements[replacementIndex+1:]...)
 
 		// Remove the index of the replaced candidate from the candidate list
 		candidates = append(candidates[:candidateIndex], candidates[candidateIndex:]...)
 	}
-}
-
-func removeIndex[E int | int16](s []E, index E) []E {
-	ret := make([]E, 0)
-	ret = append(ret, s[:index]...)
-	return append(ret, s[index+1:]...)
 }
 
 func repeatedSlice[E int | int16](value, n E) []E {
