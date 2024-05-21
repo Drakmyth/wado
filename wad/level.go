@@ -1,5 +1,7 @@
 package wad
 
+import "slices"
+
 type Level struct {
 	Name       string
 	Things     []Thing
@@ -38,4 +40,15 @@ func (l Level) toLumps() []Lump {
 	lumps = append(lumps, l.Blockmap)
 
 	return lumps
+}
+
+func (l Level) FindAllThings(thingTypes ...int16) []*Thing {
+	found := make([]*Thing, 0, 10) // Arbitrarily start with 10 capacity since we don't know how many things we'll find
+	for i, thing := range l.Things {
+		if slices.Contains(thingTypes, thing.Type) {
+			found = append(found, &l.Things[i])
+		}
+	}
+
+	return found
 }

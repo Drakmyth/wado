@@ -190,13 +190,14 @@ func copyFile(srcPath string, destPath string) error {
 
 func updateThings(level *wad.Level) {
 	// Replace all shotguns with SSGs
-	shotguns := wad.FindAllThings(level.Things, wad.THING_SHOTGUN)
+	shotguns := level.FindAllThings(wad.THING_SHOTGUN)
 	for _, shotgun := range shotguns {
 		shotgun.Type = wad.THING_SSG
 	}
 
 	// Generate 1 Megasphere, 1 Archvile, 1 Berserk, and 1 SSG
-	wad.ReplaceThingsCount(&level.Things, D2_REPLACEMENT_CANDIDATES, map[int16]int16{
+	d2Things := level.FindAllThings(D2_REPLACEMENT_CANDIDATES...)
+	wad.ReplaceThingsCount(d2Things, map[int16]int16{
 		wad.THING_MEGASPHERE: 1,
 		wad.ENEMY_ARCHVILE:   1,
 		wad.THING_BERSERK:    1,
@@ -204,24 +205,28 @@ func updateThings(level *wad.Level) {
 	})
 
 	// Replace 20% of Imps with Chaingunners
-	wad.ReplaceThingsWeighted(&level.Things, []int16{wad.ENEMY_IMP}, map[int16]float64{
+	imps := level.FindAllThings(wad.ENEMY_IMP)
+	wad.ReplaceThingsWeighted(imps, map[int16]float64{
 		wad.ENEMY_CHAINGUNNER: 0.2,
 	})
 
 	// Replace 10% of Cacodemons with Pain Elementals
-	wad.ReplaceThingsWeighted(&level.Things, []int16{wad.ENEMY_CACO}, map[int16]float64{
+	cacos := level.FindAllThings(wad.ENEMY_CACO)
+	wad.ReplaceThingsWeighted(cacos, map[int16]float64{
 		wad.ENEMY_PAIN: 0.1,
 	})
 
 	// Replace 10% of Barons with Arachnotrons, 10% with Revenants, and 30% with Hell Knights
-	wad.ReplaceThingsWeighted(&level.Things, []int16{wad.ENEMY_BARON}, map[int16]float64{
+	barons := level.FindAllThings(wad.ENEMY_BARON)
+	wad.ReplaceThingsWeighted(barons, map[int16]float64{
 		wad.ENEMY_ARACH:    0.1,
 		wad.ENEMY_REVENANT: 0.1,
 		wad.ENEMY_KNIGHT:   0.3,
 	})
 
 	// Replace 10% of Pistol Zombies with Chaingunners, 5% with Medikits, 10% with Stimpacks, and 20% with Health Pots
-	wad.ReplaceThingsWeighted(&level.Things, []int16{wad.ENEMY_PISTOL}, map[int16]float64{
+	pistols := level.FindAllThings(wad.ENEMY_PISTOL)
+	wad.ReplaceThingsWeighted(pistols, map[int16]float64{
 		wad.ENEMY_CHAINGUNNER: 0.1,
 		wad.THING_MEDKIT:      0.05,
 		wad.THING_STIM:        0.1,

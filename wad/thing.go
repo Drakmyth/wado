@@ -5,7 +5,6 @@ import (
 	"encoding/binary"
 	"math"
 	"math/rand"
-	"slices"
 )
 
 const SIZE_THING int = 10
@@ -58,20 +57,7 @@ func MarshalThings(things []Thing) []byte {
 	return buf
 }
 
-func FindAllThings(things []Thing, thingTypes ...int16) []*Thing {
-	found := make([]*Thing, 0, 10) // Arbitrarily start with 10 capacity since we don't know how many things we'll find
-	for i, thing := range things {
-		if slices.Contains(thingTypes, thing.Type) {
-			found = append(found, &things[i])
-		}
-	}
-
-	return found
-}
-
-func ReplaceThingsWeighted(things *[]Thing, candidateTypes []int16, weights map[int16]float64) {
-	candidates := FindAllThings(*things, candidateTypes...)
-
+func ReplaceThingsWeighted(candidates []*Thing, weights map[int16]float64) {
 	// Build bag of replacements to replace candidates with according to weights
 	replacements := []int16{}
 	for k, v := range weights {
@@ -82,9 +68,7 @@ func ReplaceThingsWeighted(things *[]Thing, candidateTypes []int16, weights map[
 	executeReplacements(candidates, replacements)
 }
 
-func ReplaceThingsCount(things *[]Thing, candidateTypes []int16, counts map[int16]int16) {
-	candidates := FindAllThings(*things, candidateTypes...)
-
+func ReplaceThingsCount(candidates []*Thing, counts map[int16]int16) {
 	// Build bag of replacements to replace candidates with according to counts
 	replacements := []int16{}
 	for k, cnt := range counts {
