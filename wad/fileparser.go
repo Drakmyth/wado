@@ -79,7 +79,7 @@ func parseLumpData(f *os.File, offset int32, length int32) ([]byte, error) {
 }
 
 func parseLevel(f *os.File, levelName string, levelDirEntries []fileDirectoryEntry) (Level, error) {
-	lumpMap := map[string]Lump{}
+	dataMap := map[string][]byte{}
 
 	for _, dir := range levelDirEntries {
 
@@ -89,26 +89,21 @@ func parseLevel(f *os.File, levelName string, levelDirEntries []fileDirectoryEnt
 			return Level{}, err
 		}
 
-		lump := Lump{
-			Name: lumpName,
-			Data: lumpData,
-		}
-
-		lumpMap[lumpName] = lump
+		dataMap[lumpName] = lumpData
 	}
 
 	level := Level{
 		Name:       levelName,
-		Things:     parseThings(lumpMap[LUMP_THINGS].Data),
-		Linedefs:   parseLinedefs(lumpMap[LUMP_LINEDEFS].Data),
-		Sidedefs:   parseSidedefs(lumpMap[LUMP_SIDEDEFS].Data),
-		Vertexes:   lumpMap[LUMP_VERTEXES],
-		Segments:   lumpMap[LUMP_SEGMENTS],
-		Subsectors: lumpMap[LUMP_SUBSECTORS],
-		Nodes:      lumpMap[LUMP_NODES],
-		Sectors:    lumpMap[LUMP_SECTORS],
-		Reject:     lumpMap[LUMP_REJECT],
-		Blockmap:   lumpMap[LUMP_BLOCKMAP],
+		Things:     parseThings(dataMap[LUMP_THINGS]),
+		Linedefs:   parseLinedefs(dataMap[LUMP_LINEDEFS]),
+		Sidedefs:   parseSidedefs(dataMap[LUMP_SIDEDEFS]),
+		Vertexes:   dataMap[LUMP_VERTEXES],
+		Segments:   dataMap[LUMP_SEGMENTS],
+		Subsectors: dataMap[LUMP_SUBSECTORS],
+		Nodes:      dataMap[LUMP_NODES],
+		Sectors:    dataMap[LUMP_SECTORS],
+		Reject:     dataMap[LUMP_REJECT],
+		Blockmap:   dataMap[LUMP_BLOCKMAP],
 	}
 
 	return level, nil

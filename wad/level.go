@@ -7,13 +7,13 @@ type Level struct {
 	Things     []Thing
 	Linedefs   []Linedef
 	Sidedefs   []Sidedef
-	Vertexes   Lump
-	Segments   Lump
-	Subsectors Lump
-	Nodes      Lump
-	Sectors    Lump
-	Reject     Lump
-	Blockmap   Lump
+	Vertexes   []byte
+	Segments   []byte
+	Subsectors []byte
+	Nodes      []byte
+	Sectors    []byte
+	Reject     []byte
+	Blockmap   []byte
 }
 
 func (l Level) IsLevelFromGame(game Game) bool {
@@ -31,13 +31,13 @@ func (l Level) toLumps() []Lump {
 	lumps = append(lumps, Things(l.Things).toLump())
 	lumps = append(lumps, makeLinedefsLump(l.Linedefs))
 	lumps = append(lumps, makeSidedefsLump(l.Sidedefs))
-	lumps = append(lumps, l.Vertexes)
-	lumps = append(lumps, l.Segments)
-	lumps = append(lumps, l.Subsectors)
-	lumps = append(lumps, l.Nodes)
-	lumps = append(lumps, l.Sectors)
-	lumps = append(lumps, l.Reject)
-	lumps = append(lumps, l.Blockmap)
+	lumps = append(lumps, Lump{Name: LUMP_VERTEXES, Data: l.Vertexes})
+	lumps = append(lumps, Lump{Name: LUMP_SEGMENTS, Data: l.Segments})
+	lumps = append(lumps, Lump{Name: LUMP_SUBSECTORS, Data: l.Subsectors})
+	lumps = append(lumps, Lump{Name: LUMP_NODES, Data: l.Nodes})
+	lumps = append(lumps, Lump{Name: LUMP_SECTORS, Data: l.Sectors})
+	lumps = append(lumps, Lump{Name: LUMP_REJECT, Data: l.Reject})
+	lumps = append(lumps, Lump{Name: LUMP_BLOCKMAP, Data: l.Blockmap})
 
 	return lumps
 }
