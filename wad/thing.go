@@ -17,7 +17,7 @@ type Thing struct {
 	Flags int16
 }
 
-func (t *Thing) UnmarshalBinary(data []byte) error {
+func (t *Thing) unmarshalBinary(data []byte) error {
 	t.X = int16(binary.LittleEndian.Uint16(data[0:2]))
 	t.Y = int16(binary.LittleEndian.Uint16(data[2:4]))
 	t.Angle = int16(binary.LittleEndian.Uint16(data[4:6]))
@@ -27,7 +27,7 @@ func (t *Thing) UnmarshalBinary(data []byte) error {
 	return nil
 }
 
-func (t Thing) MarshalBinary() ([]byte, error) {
+func (t Thing) marshalBinary() ([]byte, error) {
 	tbytes := [SIZE_THING]byte{}
 	binary.LittleEndian.PutUint16(tbytes[0:2], uint16(t.X))
 	binary.LittleEndian.PutUint16(tbytes[2:4], uint16(t.Y))
@@ -38,19 +38,19 @@ func (t Thing) MarshalBinary() ([]byte, error) {
 	return tbytes[:], nil
 }
 
-func UnmarshalThings(things []Thing, data []byte) {
+func unmarshalThings(things []Thing, data []byte) {
 	buf := bytes.NewBuffer(data)
 	for i, t := range things {
 		tbytes := buf.Next(SIZE_THING)
-		t.UnmarshalBinary(tbytes)
+		t.unmarshalBinary(tbytes)
 		things[i] = t
 	}
 }
 
-func MarshalThings(things []Thing) []byte {
+func marshalThings(things []Thing) []byte {
 	buf := make([]byte, 0, len(things)*SIZE_THING)
 	for _, t := range things {
-		tbytes, _ := t.MarshalBinary()
+		tbytes, _ := t.marshalBinary()
 		buf = append(buf, tbytes...)
 	}
 

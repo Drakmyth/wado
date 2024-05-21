@@ -117,7 +117,7 @@ func parseLevel(f *os.File, levelName string, levelDirEntries []fileDirectoryEnt
 func parseThings(data []byte) []Thing {
 	numThings := len(data) / SIZE_THING
 	things := make([]Thing, numThings)
-	UnmarshalThings(things, data)
+	unmarshalThings(things, data)
 	return things
 }
 
@@ -125,6 +125,6 @@ func parseSidedefs(data []byte) []Sidedef {
 	// Read all sidedefs from lump data
 	numSidedefs := len(data) / SIZE_SIDEDEF
 	sidedefs := make([]Sidedef, numSidedefs)
-	UnmarshalSidedefs(sidedefs, data)
+	unmarshalSidedefs(sidedefs, data)
 	return sidedefs
 }

@@ -29,14 +29,14 @@ const (
 func makeThingsLump(things []Thing) Lump {
 	return Lump{
 		Name: LUMP_THINGS,
-		Data: MarshalThings(things),
+		Data: marshalThings(things),
 	}
 }
 
 func makeSidedefsLump(sidedefs []Sidedef) Lump {
 	return Lump{
 		Name: LUMP_SIDEDEFS,
-		Data: MarshalSidedefs(sidedefs),
+		Data: marshalSidedefs(sidedefs),
 	}
 }
 
