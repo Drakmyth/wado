@@ -160,7 +160,7 @@ func convert(in_filepath string, out_filepath string) error {
 
 		// Replace things and fix textures
 		updateThings(&wf.Levels[i])
-		updateSidedefs(&wf.Levels[i].Sidedefs)
+		updateSidedefs(&wf.Levels[i])
 	}
 
 	return wf.Save()
@@ -229,14 +229,9 @@ func updateThings(level *wad.Level) {
 	})
 }
 
-func updateSidedefs(lump *wad.Lump) {
-	// Read all sidedefs from lump data
-	numSidedefs := len(lump.Data) / wad.SIZE_SIDEDEF
-	sidedefs := make([]wad.Sidedef, numSidedefs)
-	wad.UnmarshalSidedefs(sidedefs, lump.Data)
-
+func updateSidedefs(level *wad.Level) {
 	// Update texture names in sidedefs
-	for i, sidedef := range sidedefs {
+	for i, sidedef := range level.Sidedefs {
 		if shouldShiftTex(sidedef) {
 			sidedef.XOffset += 32
 		}
@@ -244,10 +239,8 @@ func updateSidedefs(lump *wad.Lump) {
 		sidedef.UpperTex = getNewTexName(sidedef.UpperTex)
 		sidedef.MiddleTex = getNewTexName(sidedef.MiddleTex)
 		sidedef.LowerTex = getNewTexName(sidedef.LowerTex)
-		sidedefs[i] = sidedef
+		level.Sidedefs[i] = sidedef
 	}
-
-	lump.Data = wad.MarshalSidedefs(sidedefs)
 }
 
 func shouldShiftTex(sidedef wad.Sidedef) bool {

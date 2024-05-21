@@ -30,7 +30,7 @@ type Level struct {
 	Name       string
 	Things     []Thing
 	Linedefs   Lump
-	Sidedefs   Lump
+	Sidedefs   []Sidedef
 	Vertexes   Lump
 	Segments   Lump
 	Subsectors Lump
@@ -54,7 +54,7 @@ func (l Level) toLumps() []Lump {
 	lumps = append(lumps, levelHeader)
 	lumps = append(lumps, makeThingsLump(l.Things))
 	lumps = append(lumps, l.Linedefs)
-	lumps = append(lumps, l.Sidedefs)
+	lumps = append(lumps, makeSidedefsLump(l.Sidedefs))
 	lumps = append(lumps, l.Vertexes)
 	lumps = append(lumps, l.Segments)
 	lumps = append(lumps, l.Subsectors)
@@ -70,6 +70,13 @@ func makeThingsLump(things []Thing) Lump {
 	return Lump{
 		Name: LUMP_THINGS,
 		Data: MarshalThings(things),
+	}
+}
+
+func makeSidedefsLump(sidedefs []Sidedef) Lump {
+	return Lump{
+		Name: LUMP_SIDEDEFS,
+		Data: MarshalSidedefs(sidedefs),
 	}
 }
 
