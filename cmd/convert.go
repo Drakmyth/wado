@@ -94,18 +94,26 @@ var flagUpdateSidedefs bool
 
 func init() {
 	rootCmd.AddCommand(convertCmd)
-	convertCmd.PersistentFlags().Uint64VarP(&seed, "seed", "s", rand.Uint64(), "rando me baby")
-	convertCmd.PersistentFlags().BoolVarP(&flagUpdateThings, "things", "T", false, "Stick some D2 in my D")
-	convertCmd.PersistentFlags().BoolVarP(&flagUpdateSidedefs, "textures", "t", false, "Fill in the gaps")
+	convertCmd.PersistentFlags().Uint64VarP(&seed, "seed", "s", rand.Uint64(),
+		`Specify a seed value to influence randomization.
+The same seed will produce the same results every
+time.`)
+	convertCmd.PersistentFlags().BoolVarP(&flagUpdateThings, "things", "T", false, "Replace some monsters with Doom 2 specific things.")
+	convertCmd.PersistentFlags().BoolVarP(&flagUpdateSidedefs, "textures", "t", false,
+		`Replace textures that don't exist in Doom 2 with
+similar ones.`)
 }
 
 var convertCmd = &cobra.Command{
-	Use:   "convert <path>",
-	Short: "Convert the WAD",
-	Long:  `Converts Doom WADs to Doom 2 WADs`,
+	Use:   "convert [flags] <input-wad-filepath> <output-wad-filepath>",
+	Short: "Convert a WAD from Doom to Doom 2",
+	Long: `Converts Doom WADs to Doom 2 WADs by updating map
+ids and optionally replacing textures. Can also
+replace a few enemies with some Doom 2 things to
+make it a little spicier!`,
 	Args: func(cmd *cobra.Command, args []string) error {
 		if len(args) < 2 {
-			return errors.New("requires at least two args")
+			return errors.New("requires input path and output path")
 		}
 		return nil
 	},
