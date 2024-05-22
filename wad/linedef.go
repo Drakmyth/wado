@@ -7,6 +7,7 @@ import (
 
 const SIZE_LINEDEF int = 14
 
+type Linedefs []Linedef
 type Linedef struct {
 	Start       int16
 	End         int16
@@ -17,7 +18,7 @@ type Linedef struct {
 	Back        int16
 }
 
-func (l *Linedef) unmarshalBinary(data []byte) error {
+func (l *Linedef) fromBytes(data []byte) {
 	l.Start = int16(binary.LittleEndian.Uint16(data[0:2]))
 	l.End = int16(binary.LittleEndian.Uint16(data[2:4]))
 	l.Flags = int16(binary.LittleEndian.Uint16(data[4:6]))
@@ -25,11 +26,9 @@ func (l *Linedef) unmarshalBinary(data []byte) error {
 	l.Tag = int16(binary.LittleEndian.Uint16(data[8:10]))
 	l.Front = int16(binary.LittleEndian.Uint16(data[10:12]))
 	l.Back = int16(binary.LittleEndian.Uint16(data[12:14]))
-
-	return nil
 }
 
-func (l Linedef) marshalBinary() ([]byte, error) {
+func (l Linedef) toBytes() []byte {
 	lbytes := [SIZE_LINEDEF]byte{}
 	binary.LittleEndian.PutUint16(lbytes[0:2], uint16(l.Start))
 	binary.LittleEndian.PutUint16(lbytes[2:4], uint16(l.End))
@@ -39,31 +38,32 @@ func (l Linedef) marshalBinary() ([]byte, error) {
 	binary.LittleEndian.PutUint16(lbytes[10:12], uint16(l.Front))
 	binary.LittleEndian.PutUint16(lbytes[12:14], uint16(l.Back))
 
-	return lbytes[:], nil
+	return lbytes[:]
 }
 
-func unmarshalLinedefs(linedefs []Linedef, data []byte) {
+func parseLinedefs(data []byte) []Linedef {
+	numLinedefs := len(data) / SIZE_LINEDEF
+	linedefs := make([]Linedef, numLinedefs)
+
 	buf := bytes.NewBuffer(data)
 	for i, l := range linedefs {
 		lbytes := buf.Next(SIZE_LINEDEF)
-		l.unmarshalBinary(lbytes)
+		l.fromBytes(lbytes)
 		linedefs[i] = l
 	}
+
+	return linedefs
 }
 
-func marshalLinedefs(linedefs []Linedef) []byte {
+func (linedefs Linedefs) toLump() Lump {
 	buf := make([]byte, 0, len(linedefs)*SIZE_LINEDEF)
 	for _, l := range linedefs {
-		lbytes, _ := l.marshalBinary()
+		lbytes := l.toBytes()
 		buf = append(buf, lbytes...)
 	}
 
-	return buf
-}
-
-func makeLinedefsLump(linedefs []Linedef) Lump {
 	return Lump{
 		Name: LUMP_LINEDEFS,
-		Data: marshalLinedefs(linedefs),
+		Data: buf,
 	}
 }

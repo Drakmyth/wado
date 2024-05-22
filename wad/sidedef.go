@@ -7,6 +7,7 @@ import (
 
 const SIZE_SIDEDEF int = 30
 
+type Sidedefs []Sidedef
 type Sidedef struct {
 	XOffset      int16
 	YOffset      int16
@@ -16,18 +17,16 @@ type Sidedef struct {
 	FacingSector int16
 }
 
-func (s *Sidedef) unmarshalBinary(data []byte) error {
+func (s *Sidedef) fromBytes(data []byte) {
 	s.XOffset = int16(binary.LittleEndian.Uint16(data[0:2]))
 	s.YOffset = int16(binary.LittleEndian.Uint16(data[2:4]))
 	s.UpperTex = nameToStr(data[4:12])
 	s.LowerTex = nameToStr(data[12:20])
 	s.MiddleTex = nameToStr(data[20:28])
 	s.FacingSector = int16(binary.LittleEndian.Uint16(data[28:30]))
-
-	return nil
 }
 
-func (s Sidedef) marshalBinary() ([]byte, error) {
+func (s Sidedef) toBytes() []byte {
 	sbytes := [SIZE_SIDEDEF]byte{}
 	binary.LittleEndian.PutUint16(sbytes[0:2], uint16(s.XOffset))
 	binary.LittleEndian.PutUint16(sbytes[2:4], uint16(s.YOffset))
@@ -36,31 +35,32 @@ func (s Sidedef) marshalBinary() ([]byte, error) {
 	copy(sbytes[20:28], strToName(s.MiddleTex))
 	binary.LittleEndian.PutUint16(sbytes[28:30], uint16(s.FacingSector))
 
-	return sbytes[:], nil
+	return sbytes[:]
 }
 
-func unmarshalSidedefs(sidedefs []Sidedef, data []byte) {
+func parseSidedefs(data []byte) []Sidedef {
+	numSidedefs := len(data) / SIZE_SIDEDEF
+	sidedefs := make([]Sidedef, numSidedefs)
+
 	buf := bytes.NewBuffer(data)
 	for i, s := range sidedefs {
 		sbytes := buf.Next(SIZE_SIDEDEF)
-		s.unmarshalBinary(sbytes)
+		s.fromBytes(sbytes)
 		sidedefs[i] = s
 	}
+
+	return sidedefs
 }
 
-func marshalSidedefs(sidedefs []Sidedef) []byte {
+func (sidedefs Sidedefs) toLump() Lump {
 	buf := make([]byte, 0, len(sidedefs)*SIZE_SIDEDEF)
 	for _, s := range sidedefs {
-		sbytes, _ := s.marshalBinary()
+		sbytes := s.toBytes()
 		buf = append(buf, sbytes...)
 	}
 
-	return buf
-}
-
-func makeSidedefsLump(sidedefs []Sidedef) Lump {
 	return Lump{
 		Name: LUMP_SIDEDEFS,
-		Data: marshalSidedefs(sidedefs),
+		Data: buf,
 	}
 }
