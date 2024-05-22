@@ -88,8 +88,11 @@ var LUMP_REPLACEMENTS = map[string]string{
 
 var D2_REPLACEMENT_CANDIDATES = []int16{wad.ENEMY_SHOTGUN, wad.ENEMY_IMP, wad.ENEMY_PINKY, wad.ENEMY_BARON, wad.ENEMY_PISTOL, wad.ENEMY_CACO, wad.ENEMY_SOUL}
 
+var seed uint64
+
 func init() {
 	rootCmd.AddCommand(convertCmd)
+	convertCmd.PersistentFlags().Uint64VarP(&seed, "seed", "s", rand.Uint64(), "rando me baby")
 }
 
 var convertCmd = &cobra.Command{
@@ -124,7 +127,6 @@ func convert(in_filepath string, out_filepath string) error {
 	}
 	defer wf.Close()
 
-	seed := rand.Uint64()
 	rng := rand.New(rand.NewPCG(seed, seed))
 
 	// For each lump...
