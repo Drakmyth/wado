@@ -89,10 +89,14 @@ var LUMP_REPLACEMENTS = map[string]string{
 var D2_REPLACEMENT_CANDIDATES = []int16{wad.ENEMY_SHOTGUN, wad.ENEMY_IMP, wad.ENEMY_PINKY, wad.ENEMY_BARON, wad.ENEMY_PISTOL, wad.ENEMY_CACO, wad.ENEMY_SOUL}
 
 var seed uint64
+var flagUpdateThings bool
+var flagUpdateSidedefs bool
 
 func init() {
 	rootCmd.AddCommand(convertCmd)
 	convertCmd.PersistentFlags().Uint64VarP(&seed, "seed", "s", rand.Uint64(), "rando me baby")
+	convertCmd.PersistentFlags().BoolVarP(&flagUpdateThings, "things", "T", false, "Stick some D2 in my D")
+	convertCmd.PersistentFlags().BoolVarP(&flagUpdateSidedefs, "textures", "t", false, "Fill in the gaps")
 }
 
 var convertCmd = &cobra.Command{
@@ -164,9 +168,15 @@ func convert(in_filepath string, out_filepath string) error {
 		newName := fmt.Sprintf("MAP%02d", mapNumber)
 		wf.Levels[i].Name = newName
 
-		// Replace things and fix textures
-		updateThings(&wf.Levels[i], rng)
-		updateSidedefs(&wf.Levels[i])
+		// Replace things
+		if flagUpdateThings {
+			updateThings(&wf.Levels[i], rng)
+		}
+
+		// Fix textures
+		if flagUpdateSidedefs {
+			updateSidedefs(&wf.Levels[i])
+		}
 	}
 
 	return wf.Save()
