@@ -131,6 +131,7 @@ func convert(in_filepath string, out_filepath string) error {
 	}
 	defer wf.Close()
 
+	fmt.Printf("Seed: %d", seed)
 	rng := rand.New(rand.NewPCG(seed, seed))
 
 	// For each lump...
