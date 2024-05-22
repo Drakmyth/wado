@@ -1,6 +1,10 @@
 package wad
 
-import "math"
+import (
+	"math"
+	"math/rand/v2"
+	"slices"
+)
 
 const (
 	LUMP_THINGS     = "THINGS"
@@ -46,23 +50,39 @@ const (
 	ENEMY_PAIN        int16 = 71
 )
 
-func ReplaceThingsWeighted(candidates []*Thing, weights map[int16]float64) {
+func ReplaceThingsWeighted(candidates []*Thing, weights map[int16]float64, rng *rand.Rand) {
+	// Map order is non-deterministic, so sort the keys first
+	keys := make([]int16, 0, len(weights))
+	for k := range weights {
+		keys = append(keys, k)
+	}
+	slices.Sort(keys)
+
 	// Build bag of replacements to replace candidates with according to weights
 	replacements := []int16{}
-	for k, v := range weights {
+	for _, k := range keys {
+		v := weights[k]
 		cnt := int16(math.Round(float64(len(candidates)) * v))
 		replacements = append(replacements, repeatedSlice(k, cnt)...)
 	}
 
-	executeReplacements(candidates, replacements)
+	executeReplacements(candidates, replacements, rng)
 }
 
-func ReplaceThingsCount(candidates []*Thing, counts map[int16]int16) {
+func ReplaceThingsCount(candidates []*Thing, counts map[int16]int16, rng *rand.Rand) {
+	// Map order is non-deterministic, so sort the keys first
+	keys := make([]int16, 0, len(counts))
+	for k := range counts {
+		keys = append(keys, k)
+	}
+	slices.Sort(keys)
+
 	// Build bag of replacements to replace candidates with according to counts
 	replacements := []int16{}
-	for k, cnt := range counts {
+	for _, k := range keys {
+		cnt := counts[k]
 		replacements = append(replacements, repeatedSlice(k, cnt)...)
 	}
 
-	executeReplacements(candidates, replacements)
+	executeReplacements(candidates, replacements, rng)
 }

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/rand/v2"
 	"os"
 	"regexp"
 	"slices"
@@ -123,6 +124,9 @@ func convert(in_filepath string, out_filepath string) error {
 	}
 	defer wf.Close()
 
+	seed := rand.Uint64()
+	rng := rand.New(rand.NewPCG(seed, seed))
+
 	// For each lump...
 	for i, lump := range wf.Lumps {
 		// If lump needs to be renamed...
@@ -159,7 +163,7 @@ func convert(in_filepath string, out_filepath string) error {
 		wf.Levels[i].Name = newName
 
 		// Replace things and fix textures
-		updateThings(&wf.Levels[i])
+		updateThings(&wf.Levels[i], rng)
 		updateSidedefs(&wf.Levels[i])
 	}
 
@@ -188,7 +192,7 @@ func copyFile(srcPath string, destPath string) error {
 	return err
 }
 
-func updateThings(level *wad.Level) {
+func updateThings(level *wad.Level, rng *rand.Rand) {
 	// Replace all shotguns with SSGs
 	shotguns := level.FindAllThings(wad.THING_SHOTGUN)
 	for _, shotgun := range shotguns {
@@ -202,19 +206,19 @@ func updateThings(level *wad.Level) {
 		wad.ENEMY_ARCHVILE:   1,
 		wad.THING_BERSERK:    1,
 		wad.THING_SSG:        1,
-	})
+	}, rng)
 
 	// Replace 20% of Imps with Chaingunners
 	imps := level.FindAllThings(wad.ENEMY_IMP)
 	wad.ReplaceThingsWeighted(imps, map[int16]float64{
 		wad.ENEMY_CHAINGUNNER: 0.2,
-	})
+	}, rng)
 
 	// Replace 10% of Cacodemons with Pain Elementals
 	cacos := level.FindAllThings(wad.ENEMY_CACO)
 	wad.ReplaceThingsWeighted(cacos, map[int16]float64{
 		wad.ENEMY_PAIN: 0.1,
-	})
+	}, rng)
 
 	// Replace 10% of Barons with Arachnotrons, 10% with Revenants, and 30% with Hell Knights
 	barons := level.FindAllThings(wad.ENEMY_BARON)
@@ -222,7 +226,7 @@ func updateThings(level *wad.Level) {
 		wad.ENEMY_ARACH:    0.1,
 		wad.ENEMY_REVENANT: 0.1,
 		wad.ENEMY_KNIGHT:   0.3,
-	})
+	}, rng)
 
 	// Replace 10% of Pistol Zombies with Chaingunners, 5% with Medikits, 10% with Stimpacks, and 20% with Health Pots
 	pistols := level.FindAllThings(wad.ENEMY_PISTOL)
@@ -231,7 +235,7 @@ func updateThings(level *wad.Level) {
 		wad.THING_MEDKIT:      0.05,
 		wad.THING_STIM:        0.1,
 		wad.THING_HEALTH:      0.2,
-	})
+	}, rng)
 }
 
 func updateSidedefs(level *wad.Level) {

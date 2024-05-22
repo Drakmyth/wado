@@ -3,7 +3,7 @@ package wad
 import (
 	"bytes"
 	"encoding/binary"
-	"math/rand"
+	"math/rand/v2"
 )
 
 const SIZE_THING int = 10
@@ -63,15 +63,16 @@ func (things Things) toLump() Lump {
 	}
 }
 
-func executeReplacements(candidates []*Thing, replacements []int16) {
+func executeReplacements(candidates []*Thing, replacements []int16, rng *rand.Rand) {
+
 	// Replace candidates with replacements until we're out of one or the other
 	for done := len(replacements) == 0 || len(candidates) == 0; !done; done = len(replacements) == 0 || len(candidates) == 0 {
 		// Pick a random index
-		candidateIndex := rand.Intn(len(candidates))
+		candidateIndex := rng.IntN(len(candidates))
 
 		// Replace the candidate
 		candidate := candidates[candidateIndex]
-		replacementIndex := rand.Intn(len(replacements))
+		replacementIndex := rng.IntN(len(replacements))
 		candidate.Type = replacements[replacementIndex]
 		replacements = append(replacements[:replacementIndex], replacements[replacementIndex+1:]...)
 
