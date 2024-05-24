@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -119,13 +120,16 @@ func (wf WadFile) Save() error {
 	f := wf.file
 
 	lumps := make([]Lump, 0, len(wf.Lumps)+len(wf.Levels)*11)
+	levelInfos := make([]LevelInfo, 0, len(wf.Levels))
 
 	for _, level := range wf.Levels {
 		levelLumps := level.toLumps()
 		lumps = append(lumps, levelLumps...)
+		levelInfos = append(levelInfos, level.LevelInfo)
 	}
 
 	lumps = append(lumps, wf.Lumps...)
+	lumps = append(lumps, makeUMapInfoLump(levelInfos))
 
 	header := makeHeader(wf.Identifier, lumps)
 	err = binary.Write(f, binary.LittleEndian, header)
@@ -190,6 +194,46 @@ func makeDirectory(lumps []Lump) []fileDirectoryEntry {
 	}
 
 	return directory
+}
+
+func makeUMapInfoLump(levelInfos []LevelInfo) Lump {
+	builder := strings.Builder{}
+	for i, levelInfo := range levelInfos {
+		levelSlot := fmt.Sprintf("MAP%02d", i+1)
+		lastSlot := strconv.FormatBool(levelInfo.EndGame)
+
+		builder.WriteString(fmt.Sprintf(
+			`MAP %s
+{
+    levelname = "%s"
+    label = "%s"
+`, levelSlot, levelInfo.Name, levelInfo.Label))
+		if !levelInfo.EndGame {
+			builder.WriteString(fmt.Sprintf(
+				`    next = "%s"
+    nextsecret = "%s"
+`, levelInfo.Next, levelInfo.NextSecret))
+		}
+		builder.WriteString(fmt.Sprintf(
+			`    intertext = clear
+    intertextsecret = clear
+    endgame = %s
+    endcast = %s
+    nointermission = %s
+    bossaction = clear
+`, lastSlot, lastSlot, lastSlot))
+
+		for _, bossAction := range levelInfo.BossActions {
+			builder.WriteString(fmt.Sprintf("    bossaction = %s\n", bossAction))
+		}
+		builder.WriteString("}\n\n")
+	}
+
+	mapInfoStr := builder.String()
+	return Lump{
+		Name: "UMAPINFO",
+		Data: []byte(mapInfoStr),
+	}
 }
 
 func strToName(str string) []byte {

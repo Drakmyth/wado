@@ -3,7 +3,7 @@ package wad
 import "slices"
 
 type Level struct {
-	Name       string
+	Slot       string
 	Things     []Thing
 	Linedefs   []Linedef
 	Sidedefs   []Sidedef
@@ -14,10 +14,11 @@ type Level struct {
 	Sectors    []byte
 	Reject     []byte
 	Blockmap   []byte
+	LevelInfo  LevelInfo
 }
 
 func (l Level) IsLevelFromGame(game Game) bool {
-	return isLevelFromGame(l.Name, game)
+	return isLevelFromGame(l.Slot, game)
 }
 
 func (l Level) HasSecretExit() bool {
@@ -32,7 +33,7 @@ func (l Level) HasSecretExit() bool {
 
 func (l Level) toLumps() []Lump {
 	levelHeader := Lump{
-		Name: l.Name,
+		Name: l.Slot,
 		Data: []byte{},
 	}
 

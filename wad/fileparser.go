@@ -78,7 +78,7 @@ func parseLumpData(f *os.File, offset int32, length int32) ([]byte, error) {
 	return lumpData, nil
 }
 
-func parseLevel(f *os.File, levelName string, levelDirEntries []fileDirectoryEntry) (Level, error) {
+func parseLevel(f *os.File, levelSlot string, levelDirEntries []fileDirectoryEntry) (Level, error) {
 	dataMap := map[string][]byte{}
 
 	for _, dir := range levelDirEntries {
@@ -92,8 +92,18 @@ func parseLevel(f *os.File, levelName string, levelDirEntries []fileDirectoryEnt
 		dataMap[lumpName] = lumpData
 	}
 
+	levelInfo, knownLevelSlot := DEFAULT_LEVELINFOS[levelSlot]
+	if !knownLevelSlot {
+		levelInfo = LevelInfo{
+			Name:       "Unknown",
+			Label:      levelSlot,
+			Next:       levelSlot,
+			NextSecret: levelSlot,
+		}
+	}
+
 	level := Level{
-		Name:       levelName,
+		Slot:       levelSlot,
 		Things:     parseThings(dataMap[LUMP_THINGS]),
 		Linedefs:   parseLinedefs(dataMap[LUMP_LINEDEFS]),
 		Sidedefs:   parseSidedefs(dataMap[LUMP_SIDEDEFS]),
@@ -104,6 +114,7 @@ func parseLevel(f *os.File, levelName string, levelDirEntries []fileDirectoryEnt
 		Sectors:    dataMap[LUMP_SECTORS],
 		Reject:     dataMap[LUMP_REJECT],
 		Blockmap:   dataMap[LUMP_BLOCKMAP],
+		LevelInfo:  levelInfo,
 	}
 
 	return level, nil

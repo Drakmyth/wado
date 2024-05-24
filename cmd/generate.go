@@ -71,7 +71,7 @@ func generate(in_folderpath string, out_filepath string) error {
 			if level.HasSecretExit() {
 				levelsWithSecretExits = append(levelsWithSecretExits, level)
 			} else {
-				levels = append(levels, wf.Levels...)
+				levels = append(levels, level)
 			}
 		}
 		wf.Close()
@@ -88,16 +88,38 @@ func generate(in_folderpath string, out_filepath string) error {
 	rng := rand.New(rand.NewPCG(generateSeed, generateSeed))
 
 	// Ensure exactly one level prior to level 8 has a secret exit
-	secretExitLevelSlot := rng.IntN(8)
-	for i := 0; i < 9; i++ {
+	secretExitLevelSlot := rng.IntN(7) + 1
+	for i := 1; i < 10; i++ {
 		var level wad.Level
+
+		// Pull a random level
 		if i == secretExitLevelSlot {
 			level = levelsWithSecretExits[rng.IntN(len(levelsWithSecretExits))]
 		} else {
-			level = levels[rng.IntN(len(levels))]
+			levelIndex := rng.IntN(len(levels))
+			level = levels[levelIndex]
+			levels = append(levels[:levelIndex], levels[levelIndex+1:]...)
 		}
 
-		level.Name = fmt.Sprintf("MAP%02d", i+1)
+		// Identify the level slot
+		level.Slot = fmt.Sprintf("MAP%02d", i)
+
+		// Set exit
+		next := fmt.Sprintf("MAP%02d", i+1)
+		if i == 9 {
+			next = fmt.Sprintf("MAP%02d", secretExitLevelSlot+1)
+		}
+
+		// Set secret exit
+		nextSecret := next
+		if i == secretExitLevelSlot {
+			nextSecret = "MAP09"
+		}
+
+		level.LevelInfo.Next = next
+		level.LevelInfo.NextSecret = nextSecret
+		level.LevelInfo.EndGame = i == 8
+
 		wf.Levels = append(wf.Levels, level)
 	}
 
