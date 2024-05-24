@@ -7,6 +7,8 @@ import (
 
 const SIZE_LINEDEF int = 14
 
+var SECRET_EXIT_LINETYPES = []int16{51, 124, 198}
+
 type Linedefs []Linedef
 type Linedef struct {
 	Start       int16

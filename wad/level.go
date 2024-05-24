@@ -20,6 +20,16 @@ func (l Level) IsLevelFromGame(game Game) bool {
 	return isLevelFromGame(l.Name, game)
 }
 
+func (l Level) HasSecretExit() bool {
+	for _, linedef := range l.Linedefs {
+		if slices.Contains(SECRET_EXIT_LINETYPES, linedef.SpecialType) {
+			return true
+		}
+	}
+
+	return false
+}
+
 func (l Level) toLumps() []Lump {
 	levelHeader := Lump{
 		Name: l.Name,

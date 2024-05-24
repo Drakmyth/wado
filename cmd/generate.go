@@ -57,6 +57,8 @@ func generate(in_folderpath string, out_filepath string) error {
 		return err
 	}
 
+	// Read all levels from inputs wads and bucket by existance of secret exits
+	levelsWithSecretExits := make([]wad.Level, 0, 9)
 	levels := make([]wad.Level, 0, 9)
 	for _, path := range wadPaths {
 		// Open file
@@ -65,10 +67,17 @@ func generate(in_folderpath string, out_filepath string) error {
 			return err
 		}
 
-		levels = append(levels, wf.Levels...)
+		for _, level := range wf.Levels {
+			if level.HasSecretExit() {
+				levelsWithSecretExits = append(levelsWithSecretExits, level)
+			} else {
+				levels = append(levels, wf.Levels...)
+			}
+		}
 		wf.Close()
 	}
 
+	// Create output wad
 	wf, err := wad.CreateFile(out_filepath)
 	if err != nil {
 		return err
@@ -78,10 +87,18 @@ func generate(in_folderpath string, out_filepath string) error {
 	fmt.Printf("Seed: %d", generateSeed)
 	rng := rand.New(rand.NewPCG(generateSeed, generateSeed))
 
+	// Ensure exactly one level prior to level 8 has a secret exit
+	secretExitLevelSlot := rng.IntN(8)
 	for i := 0; i < 9; i++ {
-		levelIndex := rng.IntN(len(levels))
-		wf.Levels = append(wf.Levels, levels[levelIndex])
-		wf.Levels[i].Name = fmt.Sprintf("MAP%02d", i+1)
+		var level wad.Level
+		if i == secretExitLevelSlot {
+			level = levelsWithSecretExits[rng.IntN(len(levelsWithSecretExits))]
+		} else {
+			level = levels[rng.IntN(len(levels))]
+		}
+
+		level.Name = fmt.Sprintf("MAP%02d", i+1)
+		wf.Levels = append(wf.Levels, level)
 	}
 
 	return wf.Save()
