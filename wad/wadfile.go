@@ -41,6 +41,20 @@ func isLevelFromGame(name string, game Game) bool {
 	return false
 }
 
+func CreateFile(filepath string) (*WadFile, error) {
+	f, err := os.OpenFile(filepath, os.O_CREATE, 0666)
+	if err != nil {
+		return nil, err
+	}
+
+	return &WadFile{
+		file:       f,
+		Identifier: "PWAD",
+		Lumps:      []Lump{},
+		Levels:     []Level{},
+	}, nil
+}
+
 func OpenFile(filepath string) (*WadFile, error) {
 	f, err := os.OpenFile(filepath, os.O_RDWR, 0)
 	if err != nil {

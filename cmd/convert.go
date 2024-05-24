@@ -88,13 +88,13 @@ var LUMP_REPLACEMENTS = map[string]string{
 
 var D2_REPLACEMENT_CANDIDATES = []int16{wad.ENEMY_SHOTGUN, wad.ENEMY_IMP, wad.ENEMY_PINKY, wad.ENEMY_BARON, wad.ENEMY_PISTOL, wad.ENEMY_CACO, wad.ENEMY_SOUL}
 
-var seed uint64
+var convertSeed uint64
 var flagUpdateThings bool
 var flagUpdateSidedefs bool
 
 func init() {
 	rootCmd.AddCommand(convertCmd)
-	convertCmd.PersistentFlags().Uint64VarP(&seed, "seed", "s", rand.Uint64(),
+	convertCmd.PersistentFlags().Uint64VarP(&convertSeed, "seed", "s", rand.Uint64(),
 		`Specify a seed value to influence randomization.
 The same seed will produce the same results every
 time.`)
@@ -105,7 +105,7 @@ similar ones.`)
 }
 
 var convertCmd = &cobra.Command{
-	Use:   "convert [flags] <input-wad-filepath> <output-wad-filepath>",
+	Use:   "convert [flags] <input-wad-file> <output-wad-file>",
 	Short: "Convert a WAD from Doom to Doom 2",
 	Long: `Converts Doom WADs to Doom 2 WADs by updating map
 ids and optionally replacing textures. Can also
@@ -113,7 +113,7 @@ replace a few enemies with some Doom 2 things to
 make it a little spicier!`,
 	Args: func(cmd *cobra.Command, args []string) error {
 		if len(args) < 2 {
-			return errors.New("requires input path and output path")
+			return errors.New("requires input file path and output file path")
 		}
 		return nil
 	},
@@ -139,8 +139,8 @@ func convert(in_filepath string, out_filepath string) error {
 	}
 	defer wf.Close()
 
-	fmt.Printf("Seed: %d", seed)
-	rng := rand.New(rand.NewPCG(seed, seed))
+	fmt.Printf("Seed: %d", convertSeed)
+	rng := rand.New(rand.NewPCG(convertSeed, convertSeed))
 
 	// For each lump...
 	for i, lump := range wf.Lumps {
