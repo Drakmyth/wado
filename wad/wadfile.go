@@ -1,13 +1,14 @@
 package wad
 
 import (
+	_ "embed"
 	"encoding/binary"
 	"fmt"
 	"io"
 	"os"
 	"regexp"
-	"strconv"
 	"strings"
+	"text/template"
 )
 
 type WadFile struct {
@@ -28,6 +29,9 @@ const (
 	GAME_DOOM Game = iota
 	GAME_DOOM2
 )
+
+//go:embed levelinfo.template.txt
+var LEVEL_INFO_TEMPLATE string
 
 func isLevelFromGame(name string, game Game) bool {
 	switch game {
@@ -200,33 +204,15 @@ func makeUMapInfoLump(levelInfos []LevelInfo) Lump {
 	builder := strings.Builder{}
 	for i, levelInfo := range levelInfos {
 		levelSlot := fmt.Sprintf("MAP%02d", i+1)
-		lastSlot := strconv.FormatBool(levelInfo.EndGame)
 
-		builder.WriteString(fmt.Sprintf(
-			`MAP %s
-{
-    levelname = "%s"
-    label = "%s"
-`, levelSlot, levelInfo.Name, levelInfo.Label))
-		if !levelInfo.EndGame {
-			builder.WriteString(fmt.Sprintf(
-				`    next = "%s"
-    nextsecret = "%s"
-`, levelInfo.Next, levelInfo.NextSecret))
-		}
-		builder.WriteString(fmt.Sprintf(
-			`    intertext = clear
-    intertextsecret = clear
-    endgame = %s
-    endcast = %s
-    nointermission = %s
-    bossaction = clear
-`, lastSlot, lastSlot, lastSlot))
+		temp := template.Must(template.New("levelinfo").Parse(LEVEL_INFO_TEMPLATE))
 
-		for _, bossAction := range levelInfo.BossActions {
-			builder.WriteString(fmt.Sprintf("    bossaction = %s\n", bossAction))
+		builder.WriteString(fmt.Sprintf("MAP %s\n", levelSlot))
+		err := temp.Execute(&builder, levelInfo)
+		if err != nil {
+			panic(err)
 		}
-		builder.WriteString("}\n\n")
+		builder.WriteString("\n")
 	}
 
 	mapInfoStr := builder.String()

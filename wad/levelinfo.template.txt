@@ -1,0 +1,17 @@
+{
+    levelname = "{{.Name}}"
+    label = "{{.Label}}"
+    {{- if not .EndGame}}
+    next = "{{.Next}}"
+    nextsecret = "{{.NextSecret}}"
+    {{- end}}
+    intertext = clear
+    intertextsecret = clear
+    endgame = {{.EndGame}}
+    endcast = {{.EndGame}}
+    nointermission = {{.EndGame}}
+    bossaction = clear
+    {{- range $bossaction := .BossActions}}
+    bossaction = {{$bossaction}}
+    {{- end}}
+}
