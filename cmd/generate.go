@@ -74,7 +74,6 @@ func generate(in_folderpath string, out_filepath string) error {
 				levels = append(levels, level)
 			}
 		}
-		wf.Close()
 	}
 
 	// Create output wad
@@ -82,7 +81,6 @@ func generate(in_folderpath string, out_filepath string) error {
 	if err != nil {
 		return err
 	}
-	defer wf.Close()
 
 	fmt.Printf("Seed: %d", generateSeed)
 	rng := rand.New(rand.NewPCG(generateSeed, generateSeed))

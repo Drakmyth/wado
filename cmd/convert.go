@@ -137,7 +137,6 @@ func convert(in_filepath string, out_filepath string) error {
 	if err != nil {
 		return err
 	}
-	defer wf.Close()
 
 	fmt.Printf("Seed: %d", convertSeed)
 	rng := rand.New(rand.NewPCG(convertSeed, convertSeed))

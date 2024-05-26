@@ -12,7 +12,7 @@ import (
 )
 
 type WadFile struct {
-	file       *os.File
+	filepath   string
 	Identifier string
 	Lumps      []Lump
 	Levels     []Level
@@ -51,9 +51,13 @@ func CreateFile(filepath string) (*WadFile, error) {
 	if err != nil {
 		return nil, err
 	}
+	err = f.Close()
+	if err != nil {
+		return nil, err
+	}
 
 	return &WadFile{
-		file:       f,
+		filepath:   filepath,
 		Identifier: "PWAD",
 		Lumps:      []Lump{},
 		Levels:     []Level{},
@@ -65,6 +69,7 @@ func OpenFile(filepath string) (*WadFile, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer f.Close()
 
 	header, err := parseHeader(f)
 	if err != nil {
@@ -103,7 +108,7 @@ func OpenFile(filepath string) (*WadFile, error) {
 	}
 
 	return &WadFile{
-		file:       f,
+		filepath:   filepath,
 		Identifier: string(header.Identifier[:]),
 		Lumps:      lumps,
 		Levels:     levels,
@@ -111,17 +116,21 @@ func OpenFile(filepath string) (*WadFile, error) {
 }
 
 func (wf WadFile) Save() error {
-	_, err := wf.file.Seek(0, io.SeekStart)
+	f, err := os.OpenFile(wf.filepath, os.O_RDWR, 0)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	_, err = f.Seek(0, io.SeekStart)
 	if err != nil {
 		return err
 	}
 
-	err = wf.file.Truncate(0)
+	err = f.Truncate(0)
 	if err != nil {
 		return err
 	}
-
-	f := wf.file
 
 	lumps := make([]Lump, 0, len(wf.Lumps)+len(wf.Levels)*11)
 	levelInfos := make([]LevelInfo, 0, len(wf.Levels))
@@ -155,10 +164,6 @@ func (wf WadFile) Save() error {
 	}
 
 	return f.Sync()
-}
-
-func (wf WadFile) Close() error {
-	return wf.file.Close()
 }
 
 func makeHeader(identifier string, lumps []Lump) fileHeader {
