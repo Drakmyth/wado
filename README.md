@@ -2,17 +2,19 @@
 
 A tool for mixing and munging Doom WAD files. It's a little eclectic and could go anywhere.
 
-Where's Waldo?
-Where's Wadlo?
-Wado!
-
 ### Built With
 
 * [![Golang][golang-shield]][golang-url]
 
 ## Usage
 
-TBD
+Execute `wado help` for more detailed information.
+
+Command  | Arguments                                      | Description
+-------- | ---------------------------------------------- | -----------
+analyze  | N/A                                            | *Not Yet Implemented*<br/>Analyze the difficulty of a WAD
+convert  | `[flags] <input-wad-file> <output-wad-file>`   | Convert a WAD from Doom to Doom 2
+generate | `[flags] <input-wad-folder> <output-wad-file>` | Generate a new WAD with random levels
 
 ## Development
 
