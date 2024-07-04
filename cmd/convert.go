@@ -94,7 +94,7 @@ var flagUpdateSidedefs bool
 
 func init() {
 	rootCmd.AddCommand(convertCmd)
-	convertCmd.PersistentFlags().Uint64VarP(&convertSeed, "seed", "s", rand.Uint64(),
+	convertCmd.PersistentFlags().Uint64VarP(&convertSeed, "seed", "s", 0,
 		`Specify a seed value to influence randomization.
 The same seed will produce the same results every
 time.`)
@@ -118,6 +118,10 @@ make it a little spicier!`,
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
+		if !cmd.Flags().Changed("seed") {
+			convertSeed = rand.Uint64()
+		}
+
 		err := convert(args[0], args[1])
 		if err != nil {
 			panic(err)

@@ -16,7 +16,7 @@ var generateSeed uint64
 
 func init() {
 	rootCmd.AddCommand(generateCmd)
-	generateCmd.PersistentFlags().Uint64VarP(&generateSeed, "seed", "s", rand.Uint64(),
+	generateCmd.PersistentFlags().Uint64VarP(&generateSeed, "seed", "s", 0,
 		`Specify a seed value to influence randomization.
 The same seed will produce the same results every
 time.`)
@@ -36,6 +36,10 @@ only contains wads targetting the same game.`,
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
+		if !cmd.Flags().Changed("seed") {
+			generateSeed = rand.Uint64()
+		}
+
 		err := generate(args[0], args[1])
 		if err != nil {
 			panic(err)
